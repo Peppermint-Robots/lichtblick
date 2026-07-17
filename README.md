@@ -91,18 +91,21 @@ $ LIBGL_ALWAYS_SOFTWARE=1 yarn desktop:start
 
 ## :hammer_and_wrench: Building Lichtblick
 
-Build the application for production using these commands:
+Build the application for production using these commands. This fork also
+provides a `justfile` wrapping the same scripts (`just web-build`,
+`just desktop-build`, `just desktop-deb`, …); run `just` to list them.
 
 ```sh
-# To build the desktop apps:
-$ yarn run desktop:build:prod   # compile necessary files
-
-- yarn run package:win         # Package for windows
-- yarn run package:darwin      # Package for macOS
-- yarn run package:linux       # Package for linux
-
 # To build the web app:
-$ yarn run web:build:prod
+$ yarn run web:build:prod       # or: just web-build
+
+# To build the desktop app (webpack bundle Electron runs):
+$ yarn run desktop:build:prod   # or: just desktop-build
+
+# To package the desktop app into installers (run after desktop:build:prod):
+- yarn run package:win          # Package for Windows
+- yarn run package:darwin       # Package for macOS
+- yarn run package:linux        # Package for Linux (deb + tar.gz)  (or: just desktop-package)
 
 # To build and run the web app using docker:
 $ docker build . -t lichtblick
@@ -112,7 +115,13 @@ $ docker run -p 8080:8080 lichtblick
 $ yarn run clean
 ```
 
-- The desktop builds are located in the `dist` directory, and the web builds are found in the `web/.webpack` directory.
+### Where the builds are
+
+| Command | Output location | What it is |
+| --- | --- | --- |
+| `yarn web:build:prod` (`just web-build`) | `web/.webpack/` | Static web bundle (`index.html` + assets). This is what the Peppermint host app ships. |
+| `yarn desktop:build:prod` (`just desktop-build`) | `desktop/.webpack/` | Compiled Electron bundle. Launch it with `yarn desktop:start` (or `electron desktop/.webpack`). |
+| `yarn package:linux` (`just desktop-package`, `just desktop-deb`) | `dist/` | Distributable desktop installers — `.deb` and `.tar.gz` for x64/arm64. |
 
 ## :warning: Note on Linux dependencies (.tar.gz only)
 

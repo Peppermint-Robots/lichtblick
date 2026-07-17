@@ -5,10 +5,10 @@
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-import { LayoutData } from "@lichtblick/suite-base";
+import { LayoutData } from "@lichtblick/suite-base/context/CurrentLayoutContext";
 
-import { WebLayoutLoader } from "./WebLayoutLoader";
-import { BundledLayout } from "../layouts";
+import { BundledLayoutLoader } from "./BundledLayoutLoader";
+import { BundledLayout } from "@lichtblick/suite-base/layouts";
 
 const bundled: BundledLayout[] = [
   { name: "Robot Diagnostics", version: 1, data: {} as LayoutData },
@@ -25,14 +25,14 @@ function mockFetchResponse(response: Partial<Response> | Error): jest.Mock {
   return mock;
 }
 
-describe("WebLayoutLoader", () => {
+describe("BundledLayoutLoader", () => {
   afterEach(() => {
     delete (globalThis as { fetch?: unknown }).fetch;
   });
 
   it("returns bundled layouts when no manifest is served", async () => {
     mockFetchResponse({ ok: false, status: 404 });
-    const loader = new WebLayoutLoader(bundled);
+    const loader = new BundledLayoutLoader(bundled);
 
     const layouts = await loader.fetchLayouts();
     expect(layouts).toEqual([
@@ -42,7 +42,7 @@ describe("WebLayoutLoader", () => {
 
   it("fetches the manifest from the layoutsUrl when provided", async () => {
     const fetchMock = mockFetchResponse({ ok: false, status: 404 });
-    const loader = new WebLayoutLoader(bundled, "https://host.example/layouts.json");
+    const loader = new BundledLayoutLoader(bundled, "https://host.example/layouts.json");
 
     await loader.fetchLayouts();
     expect(fetchMock).toHaveBeenCalledWith("https://host.example/layouts.json");
@@ -59,7 +59,7 @@ describe("WebLayoutLoader", () => {
         ],
       }),
     });
-    const loader = new WebLayoutLoader(bundled);
+    const loader = new BundledLayoutLoader(bundled);
 
     const layouts = await loader.fetchLayouts();
     expect(layouts).toEqual([
@@ -70,7 +70,7 @@ describe("WebLayoutLoader", () => {
 
   it("falls back to bundled layouts when the manifest fetch fails", async () => {
     mockFetchResponse(new Error("network down"));
-    const loader = new WebLayoutLoader(bundled);
+    const loader = new BundledLayoutLoader(bundled);
 
     const layouts = await loader.fetchLayouts();
     expect(layouts).toEqual([
@@ -84,12 +84,16 @@ describe("WebLayoutLoader", () => {
       status: 200,
       json: async () => ({ notLayouts: [] }),
     });
-    const loader = new WebLayoutLoader(bundled);
+    const loader = new BundledLayoutLoader(bundled);
 
     const layouts = await loader.fetchLayouts();
     expect(layouts).toEqual([
       { name: "Robot Diagnostics", from: "web:Robot Diagnostics@1", data: {} },
     ]);
+    // A manifest without a "layouts" array is logged via log.warn; clear the expected warning so
+    // the global console.warn guard in setupTestFramework does not fail the test.
+    expect(console.warn).toHaveBeenCalled();
+    (console.warn as jest.Mock).mockClear();
   });
 
   it("filters manifest entries missing required fields", async () => {
@@ -105,7 +109,7 @@ describe("WebLayoutLoader", () => {
         ],
       }),
     });
-    const loader = new WebLayoutLoader([]);
+    const loader = new BundledLayoutLoader([]);
 
     const layouts = await loader.fetchLayouts();
     expect(layouts).toEqual([{ name: "Valid", from: "web:Valid@2", data: {} }]);

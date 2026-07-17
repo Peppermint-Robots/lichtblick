@@ -26,10 +26,10 @@ import {
 } from "@lichtblick/suite-base";
 import { APP_CONFIG } from "@lichtblick/suite-base/constants/config";
 import { AppParametersInput } from "@lichtblick/suite-base/context/AppParametersContext";
+import { bundledLayouts } from "@lichtblick/suite-base/layouts";
+import { BundledLayoutLoader } from "@lichtblick/suite-base/services/BundledLayoutLoader";
 
-import { bundledLayouts } from "./layouts";
 import LocalStorageAppConfiguration from "./services/LocalStorageAppConfiguration";
-import { WebLayoutLoader } from "./services/WebLayoutLoader";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
@@ -72,7 +72,7 @@ export function WebRoot(props: {
 
   const layoutsUrl = url.searchParams.get("layoutsUrl");
   const [layoutLoaders] = useState(() => [
-    new WebLayoutLoader(bundledLayouts, layoutsUrl ?? undefined),
+    new BundledLayoutLoader(bundledLayouts, layoutsUrl ?? undefined),
   ]);
 
   const dataSources = useMemo(() => {

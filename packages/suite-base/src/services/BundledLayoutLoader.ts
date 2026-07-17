@@ -6,31 +6,32 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import Logger from "@lichtblick/log";
-import { LayoutData, LayoutInfo, LayoutLoader } from "@lichtblick/suite-base";
-
-import { BundledLayout } from "../layouts";
+import { LayoutData } from "@lichtblick/suite-base/context/CurrentLayoutContext";
+import { BundledLayout } from "@lichtblick/suite-base/layouts";
+import { LayoutLoader } from "@lichtblick/suite-base/services/ILayoutLoader";
+import { LayoutInfo } from "@lichtblick/suite-base/types/layouts";
 
 const log = Logger.getLogger(__filename);
 
 /** Well-known path (relative to the served web bundle) the host app can place a manifest at. */
 const DEFAULT_MANIFEST_PATH = "layouts/index.json";
 
-export type WebLayoutManifest = {
+export type BundledLayoutManifest = {
   layouts: Array<{ name: string; version: number | string; data: LayoutData }>;
 };
 
 /**
- * Provides default layouts for the web build from two sources:
+ * Provides the default layouts bundled into the web and desktop builds
+ * (see `packages/suite-base/src/layouts/`), plus — on web — a JSON manifest served by the host
+ * application, fetched from the `layoutsUrl` URL parameter or, when absent, from the well-known
+ * relative path `layouts/index.json`. Host-served layouts override bundled layouts with the same
+ * name. On desktop the manifest fetch fails quietly and only the bundled layouts load.
  *
- * 1. Layouts bundled into the build (see `packages/suite-web/src/layouts/`).
- * 2. A JSON manifest served by the host application, fetched from the `layoutsUrl` URL parameter
- *    or, when absent, from the well-known relative path `layouts/index.json`. Host-served layouts
- *    override bundled layouts with the same name.
- *
- * Each layout is identified as `web:<name>@<version>`; bumping a layout's version replaces the
- * stored copy on next launch (see loadDefaultLayouts).
+ * Each layout is identified as `web:<name>@<version>` (the `web:` prefix is kept for backward
+ * compatibility with layouts already stored in users' browsers); bumping a layout's version
+ * replaces the stored copy on next launch (see loadDefaultLayouts).
  */
-export class WebLayoutLoader implements LayoutLoader {
+export class BundledLayoutLoader implements LayoutLoader {
   public readonly namespace = "local";
   #bundled: readonly BundledLayout[];
   #manifestUrl: string;
@@ -55,7 +56,7 @@ export class WebLayoutLoader implements LayoutLoader {
       from: `web:${name}@${version}`,
       data,
     }));
-    log.debug(`Loaded ${layouts.length} web default layout(s)`);
+    log.debug(`Loaded ${layouts.length} bundled default layout(s)`);
     return layouts;
   };
 

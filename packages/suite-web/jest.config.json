@@ -9,7 +9,7 @@
   "haste": { "forceNodeFilesystemAPI": true },
   "//": "Tests always resolve the private-layouts alias to the stub so they never depend on the proprietary layouts submodule",
   "moduleNameMapper": {
-    "@lichtblick/private-layouts": "<rootDir>/src/layouts/noPrivateLayouts.ts",
+    "@lichtblick/private-layouts": "<rootDir>/../suite-base/src/layouts/noPrivateLayouts.ts",
     "@lichtblick/suite-base/(.*)": "<rootDir>/../suite-base/src/$1"
   },
   "setupFiles": ["<rootDir>/../suite-base/src/test/setup.ts"],

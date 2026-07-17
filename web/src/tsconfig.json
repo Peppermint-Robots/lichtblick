@@ -9,12 +9,12 @@
     "useUnknownInCatchVariables": false,
     "paths": {
       "@lichtblick/suite-base/*": ["../../packages/suite-base/src/*"],
-      // Mirrors the webpack alias in packages/suite-web/src/webpackConfigs.ts: proprietary
-      // layouts (git submodule at packages/suite-web/src/layouts/private/) when present,
+      // Mirrors the webpack alias in packages/suite-base/webpack.ts (makeConfig): proprietary
+      // layouts (git submodule at packages/suite-base/src/layouts/private/) when present,
       // otherwise a stub that contributes none.
       "@lichtblick/private-layouts": [
-        "../../packages/suite-web/src/layouts/private/index.ts",
-        "../../packages/suite-web/src/layouts/noPrivateLayouts.ts"
+        "../../packages/suite-base/src/layouts/private/index.ts",
+        "../../packages/suite-base/src/layouts/noPrivateLayouts.ts"
       ]
     }
   }

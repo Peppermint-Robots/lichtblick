@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 import { EsbuildPlugin } from "esbuild-loader";
 import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
 import MonacoWebpackPlugin from "monaco-editor-webpack-plugin";
+import { existsSync as _nodeExistsSync } from "node:fs";
 import { createRequire as _nodeCreateRequire } from "node:module";
 import { fileURLToPath as _nodeFileURLToPath, pathToFileURL as _nodePathToFileURL } from "node:url";
 import ReactRefreshTypescript from "react-refresh-typescript";
@@ -90,11 +91,21 @@ export function makeConfig(
 
   const { allowUnusedVariables = isDev && isServe, version, tsconfigPath } = options;
 
+  // Proprietary Peppermint default layouts are supplied by the private git submodule at
+  // src/layouts/private/; when it is absent (open-source checkout, or a clone without
+  // --recursive, which leaves the directory empty) resolve to a stub that contributes none.
+  // Testing for the entry file rather than the directory keeps the empty-submodule case working.
+  const privateLayoutsEntry = _nodeFileURLToPath(new URL("src/layouts/private/index.ts", dirHref));
+  const privateLayoutsPath = _nodeExistsSync(privateLayoutsEntry)
+    ? privateLayoutsEntry
+    : _nodeFileURLToPath(new URL("src/layouts/noPrivateLayouts.ts", dirHref));
+
   return {
     resolve: {
       extensions: [".js", ".ts", ".jsx", ".tsx"],
       alias: {
         "@lichtblick/suite-base": _nodeFileURLToPath(new URL("src", dirHref)),
+        "@lichtblick/private-layouts": privateLayoutsPath,
       },
       fallback: {
         path: localRequire.resolve("path-browserify"), // foxglove-depcheck-used: path-browserify

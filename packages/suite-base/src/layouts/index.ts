@@ -5,11 +5,12 @@
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-// Resolved by the `@lichtblick/private-layouts` webpack alias: `src/layouts/private/` when that
-// directory exists, otherwise `./noPrivateLayouts`. Lets proprietary layouts ship in Peppermint
-// builds without living in this repository.
+// Resolved by the `@lichtblick/private-layouts` alias (defined in suite-base's webpack makeConfig
+// and mirrored in the tsconfigs): `src/layouts/private/` when that submodule is present, otherwise
+// `./noPrivateLayouts`. Lets proprietary layouts ship in Peppermint builds without living in this
+// repository.
 import { privateLayouts } from "@lichtblick/private-layouts";
-import { LayoutData } from "@lichtblick/suite-base";
+import { LayoutData } from "@lichtblick/suite-base/context/CurrentLayoutContext";
 
 import robotDiagnosticsLayout from "./robotDiagnostics.json";
 
@@ -21,8 +22,9 @@ export type BundledLayout = {
 };
 
 /**
- * Default layouts compiled into the web build. Topic names are generic (`/odom`, `/scan`, ...)
- * and resolve against robot-namespaced sources via the built-in robot-namespace topic aliases.
+ * Default layouts compiled into the web and desktop builds. Topic references are adapted to the
+ * connected robot's namespace at runtime by RobotNamespaceLayoutAdapter, so layouts work for any
+ * robot regardless of the namespace they were authored against.
  */
 export const bundledLayouts: BundledLayout[] = [
   {

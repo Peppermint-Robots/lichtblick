@@ -36,6 +36,7 @@ export function SharedRoot(
     enableLaunchPreferenceScreen,
     extensionLoaders,
     extraProviders,
+    layoutLoaders,
   } = props;
 
   const contextValue = useMemo(
@@ -50,6 +51,7 @@ export function SharedRoot(
       enableLaunchPreferenceScreen,
       extensionLoaders,
       extraProviders,
+      layoutLoaders,
       onAppBarDoubleClick,
     }),
     [
@@ -63,6 +65,7 @@ export function SharedRoot(
       enableLaunchPreferenceScreen,
       extensionLoaders,
       extraProviders,
+      layoutLoaders,
       onAppBarDoubleClick,
     ],
   );

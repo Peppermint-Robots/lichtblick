@@ -6,6 +6,15 @@
     "lib": ["ESNext.Disposable"],
     "module": "commonjs",
     "noEmit": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "paths": {
+      // Mirrors the webpack alias in packages/suite-web/src/webpackConfigs.ts: proprietary
+      // layouts (git submodule) when present, else a stub. Keep in sync with
+      // packages/suite-web/tsconfig.json.
+      "@lichtblick/private-layouts": [
+        "../packages/suite-web/src/layouts/private/index.ts",
+        "../packages/suite-web/src/layouts/noPrivateLayouts.ts"
+      ]
+    }
   }
 }

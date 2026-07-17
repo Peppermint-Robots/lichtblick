@@ -1,0 +1,3 @@
+[submodule "packages/suite-web/src/layouts/private"]
+	path = packages/suite-web/src/layouts/private
+	url = https://github.com/Peppermint-Robots/litchtblick_private.git

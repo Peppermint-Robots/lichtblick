@@ -42,6 +42,7 @@ jest.mock("three", () => {
         },
         shadowMap: {},
         dispose: jest.fn(),
+        forceContextLoss: jest.fn(),
         clearDepth: jest.fn(),
         getDrawingBufferSize: () => ({ width: 100, height: 100 }),
       };

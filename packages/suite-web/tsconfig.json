@@ -9,7 +9,11 @@
     "useUnknownInCatchVariables": false,
     "types": ["node", "jest"],
     "paths": {
-      "@lichtblick/suite-base/*": ["../suite-base/src/*"]
+      "@lichtblick/suite-base/*": ["../suite-base/src/*"],
+      // Proprietary layouts (git submodule at src/layouts/private/) when present, else a stub.
+      // Mirrors the webpack alias in src/webpackConfigs.ts. TypeScript picks the first match that
+      // exists on disk, so open-source checkouts type-check against the stub.
+      "@lichtblick/private-layouts": ["./src/layouts/private/index.ts", "./src/layouts/noPrivateLayouts.ts"]
     }
   }
 }

@@ -43,6 +43,7 @@ const createMockRenderer = (overrides?: Record<string, any>) => {
   const listeners = new Map<string, Set<(...args: any[]) => void>>();
   const defaultRenderer = {
     dispose: jest.fn(),
+    forceContextLoss: jest.fn(),
     config: {},
     setTopics: jest.fn(),
     setParameters: jest.fn(),

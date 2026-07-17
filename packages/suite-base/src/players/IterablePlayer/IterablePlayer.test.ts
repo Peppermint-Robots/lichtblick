@@ -17,8 +17,6 @@ import {
   PlayerPresence,
   PlayerState,
 } from "@lichtblick/suite-base/players/types";
-import { HIGH_FREQUENCY_ALERT } from "@lichtblick/suite-base/players/utils/constants";
-import * as highFrequencyUtils from "@lichtblick/suite-base/players/utils/isTopicHighFrequency";
 import { mockTopicSelection } from "@lichtblick/suite-base/test/mocks/mockTopicSelection";
 
 import {
@@ -370,6 +368,62 @@ describe("IterablePlayer", () => {
     await resumedAfterSeekEmit;
     expect(resumedCurrentNs).toBeDefined();
     expect(resumedCurrentNs!).toBeGreaterThan(1);
+
+    player.close();
+    await player.isClosed;
+  });
+
+  it("triggers a backfill when subscriptions change while playing", async () => {
+    const source = new TestSource();
+    const player = new IterablePlayer({
+      source,
+      enablePreload: false,
+      sourceId: "test",
+    });
+
+    player.setSubscriptions([{ topic: "foo" }]);
+
+    const initialStore = new PlayerStateStore(4);
+    const playingStarted = signal();
+    const backfilledBar = signal();
+
+    const backfillCalls: string[][] = [];
+    source.getBackfillMessages = async (args: GetBackfillMessagesArgs): Promise<MessageEvent[]> => {
+      backfillCalls.push([...args.topics.keys()].sort());
+      return [];
+    };
+
+    let initialized = false;
+    let stillPlayingAfterBackfill: boolean | undefined;
+    player.setListener(async (state) => {
+      if (!initialized) {
+        await initialStore.add(state);
+        return;
+      }
+
+      if (state.activeData?.isPlaying === true) {
+        playingStarted.resolve();
+      }
+
+      if (backfillCalls.some((topics) => topics.includes("bar"))) {
+        stillPlayingAfterBackfill = state.activeData?.isPlaying;
+        backfilledBar.resolve();
+      }
+    });
+
+    await initialStore.done;
+    initialized = true;
+
+    player.startPlayback();
+    await playingStarted;
+
+    // Subscribing to a new topic mid-playback must backfill it so latched/publish-once topics
+    // (whose only message is before the current position) are delivered without pausing.
+    player.setSubscriptions([{ topic: "foo" }, { topic: "bar" }]);
+    await backfilledBar;
+
+    expect(backfillCalls.some((topics) => _.isEqual(topics, ["bar", "foo"]))).toBe(true);
+    expect(stillPlayingAfterBackfill).toBe(true);
 
     player.close();
     await player.isClosed;
@@ -824,7 +878,9 @@ describe("IterablePlayer", () => {
     await player.isClosed;
   });
 
-  it("should detect high frequency topics during initialization", async () => {
+  // This fork intentionally does not surface the upstream high-frequency (>60Hz) alert: it is
+  // informational only (no data is dropped) and robot data sources routinely exceed 60Hz.
+  it("should not raise an alert for high frequency topics during initialization", async () => {
     class HighFrequencyTopicSource implements IDeserializedIterableSource {
       public readonly sourceType = "deserialized";
       public async initialize(): Promise<Initialization> {
@@ -866,89 +922,10 @@ describe("IterablePlayer", () => {
     });
 
     const playerStates = await store.done;
-    expect(_.last(playerStates)!.alerts).toEqual([
-      {
-        severity: HIGH_FREQUENCY_ALERT.severity,
-        message: HIGH_FREQUENCY_ALERT.message,
-        error: expect.any(Error),
-      },
-    ]);
+    expect(_.last(playerStates)!.alerts).toEqual([]);
 
     player.close();
     await player.isClosed;
-
-    (console.warn as jest.Mock).mockClear();
-  });
-
-  it("should only call isTopicHighFrequency once even with multiple high frequency topics", async () => {
-    const isTopicHighFrequencySpy = jest.spyOn(highFrequencyUtils, "isTopicHighFrequency");
-
-    class MultiHighFreqTopicsSource implements IDeserializedIterableSource {
-      public readonly sourceType = "deserialized";
-      public async initialize(): Promise<Initialization> {
-        const topicStats = new Map();
-        // Add multiple high frequency topics
-        topicStats.set("high-freq-topic-1", {
-          numMessages: 6000,
-          firstMessageTime: { sec: 0, nsec: 0 },
-          lastMessageTime: { sec: 1, nsec: 0 },
-        });
-        topicStats.set("high-freq-topic-2", {
-          numMessages: 7000,
-          firstMessageTime: { sec: 0, nsec: 0 },
-          lastMessageTime: { sec: 1, nsec: 0 },
-        });
-
-        return {
-          start: { sec: 0, nsec: 0 },
-          end: { sec: 1, nsec: 0 },
-          topics: [
-            { name: "high-freq-topic-1", schemaName: "std_msgs/String" },
-            { name: "high-freq-topic-2", schemaName: "std_msgs/String" },
-          ],
-          topicStats,
-          profile: undefined,
-          alerts: [],
-          datatypes: new Map(),
-          publishersByTopic: new Map(),
-        };
-      }
-
-      public async *messageIterator() {}
-      public async getBackfillMessages() {
-        return [];
-      }
-    }
-
-    const source = new MultiHighFreqTopicsSource();
-    const player = new IterablePlayer({
-      source,
-      enablePreload: false,
-      sourceId: "test",
-    });
-
-    const store = new PlayerStateStore(4);
-    player.setListener(async (state) => {
-      await store.add(state);
-    });
-
-    const playerStates = await store.done;
-
-    expect(isTopicHighFrequencySpy).toHaveBeenCalledTimes(1);
-    expect(_.last(playerStates)!.alerts).toEqual([
-      {
-        severity: HIGH_FREQUENCY_ALERT.severity,
-        message: HIGH_FREQUENCY_ALERT.message,
-        error: expect.any(Error),
-      },
-    ]);
-
-    player.close();
-    await player.isClosed;
-
-    isTopicHighFrequencySpy.mockRestore();
-
-    (console.warn as jest.Mock).mockClear();
   });
 
   it("should start a new iterator mid-tick when old iterator finishes", async () => {

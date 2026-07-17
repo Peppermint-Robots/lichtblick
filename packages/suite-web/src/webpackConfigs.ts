@@ -8,6 +8,7 @@
 import ReactRefreshPlugin from "@pmmmwh/react-refresh-webpack-plugin";
 import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import CopyPlugin from "copy-webpack-plugin";
+import fs from "fs";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import path from "path";
 import { Configuration, WebpackPluginInstance } from "webpack";
@@ -126,10 +127,32 @@ export const mainConfig =
       version: params.version,
     });
 
+    // Proprietary default layouts are kept out of this repository and supplied by the private
+    // submodule at `src/layouts/private/`; when it is absent, resolve to a stub that contributes
+    // none so an open-source checkout still builds.
+    //
+    // Test for the entry file rather than the directory: a submodule that has not been
+    // initialised (`git clone` without `--recursive`) leaves an empty directory behind, which
+    // would otherwise alias to an unresolvable module and fail the build.
+    const privateLayoutsEntry = path.resolve(__dirname, "layouts", "private", "index.ts");
+    const privateLayoutsPath = fs.existsSync(privateLayoutsEntry)
+      ? privateLayoutsEntry
+      : path.resolve(__dirname, "layouts", "noPrivateLayouts.ts");
+    const baseAlias = appWebpackConfig.resolve?.alias;
+
     const config: Configuration = {
       name: "main",
 
       ...appWebpackConfig,
+
+      resolve: {
+        ...appWebpackConfig.resolve,
+        alias: {
+          // `alias` may be declared as an object or an array; makeConfig uses the object form.
+          ...(Array.isArray(baseAlias) ? undefined : baseAlias),
+          "@lichtblick/private-layouts": privateLayoutsPath,
+        },
+      },
 
       target: "web",
       context: params.contextPath,

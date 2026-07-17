@@ -72,6 +72,7 @@ let mockGl: {
   readRenderTargetPixels: jest.Mock;
   info: { reset: jest.Mock };
   dispose: jest.Mock;
+  forceContextLoss: jest.Mock;
   clearDepth: jest.Mock;
   getDrawingBufferSize: () => { width: number; height: number };
 };
@@ -89,6 +90,7 @@ function resetMockGl() {
     readRenderTargetPixels: jest.fn(),
     info: { reset: jest.fn() },
     dispose: jest.fn(),
+    forceContextLoss: jest.fn(),
     clearDepth: jest.fn(),
     getDrawingBufferSize: () => ({ width: 100, height: 100 }),
   };

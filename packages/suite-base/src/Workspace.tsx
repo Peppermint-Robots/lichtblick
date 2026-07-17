@@ -46,6 +46,7 @@ import PanelLayout from "@lichtblick/suite-base/components/PanelLayout";
 import PanelSettings from "@lichtblick/suite-base/components/PanelSettings";
 import PlaybackControls from "@lichtblick/suite-base/components/PlaybackControls";
 import RemountOnValueChange from "@lichtblick/suite-base/components/RemountOnValueChange";
+import RobotNamespaceLayoutAdapter from "@lichtblick/suite-base/components/RobotNamespaceLayoutAdapter";
 import { SidebarContent } from "@lichtblick/suite-base/components/SidebarContent";
 import Sidebars from "@lichtblick/suite-base/components/Sidebars";
 import { SidebarItem } from "@lichtblick/suite-base/components/Sidebars/types";
@@ -707,6 +708,8 @@ function WorkspaceContent(props: WorkspaceProps): React.JSX.Element {
       {dataSourceDialog.open && <DataSourceDialog />}
       <DocumentDropListener onDrop={dropHandler} allowedExtensions={allowedDropExtensions} />
       <SyncAdapters />
+      {/* Must live inside PanelStateContextProvider: it remounts panels via their sequence number */}
+      <RobotNamespaceLayoutAdapter />
       <KeyListener global keyDownHandlers={keyDownHandlers} />
       <div className={classes.container} ref={containerRef} tabIndex={0}>
         {appBar}

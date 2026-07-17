@@ -267,12 +267,20 @@ export default function PlayerManager(
               });
 
               setBasePlayer(newPlayer);
-              addRecent({
-                type: "file",
-                title: mergeMultipleFileNames(handles.map((h) => h.name)),
-                sourceId: foundSource.id,
-                handles,
-              });
+              // Fallback handles produced by the <input type="file"> picker (see
+              // showOpenFilePicker.tsx) are not structured-cloneable and cannot be persisted to
+              // the IndexedDB recents store — only add native handles to recents.
+              const nativeHandles =
+                typeof FileSystemFileHandle !== "undefined" &&
+                handles.every((h) => h instanceof FileSystemFileHandle);
+              if (nativeHandles) {
+                addRecent({
+                  type: "file",
+                  title: mergeMultipleFileNames(handles.map((h) => h.name)),
+                  sourceId: foundSource.id,
+                  handles,
+                });
+              }
 
               return;
             }

@@ -34,7 +34,13 @@ import { topicIsConvertibleToSchema } from "../topicIsConvertibleToSchema";
 import { Pose } from "../transforms";
 
 type LayerSettingsLaserScan = LayerSettingsPointExtension;
-const DEFAULT_SETTINGS = DEFAULT_POINT_SETTINGS;
+// Laser scans default to a larger point size than the shared point default (used by point clouds
+// and Velodyne scans) so scan returns are easier to see out of the box.
+const DEFAULT_LASERSCAN_POINT_SIZE = 3;
+const DEFAULT_SETTINGS: LayerSettingsLaserScan = {
+  ...DEFAULT_POINT_SETTINGS,
+  pointSize: DEFAULT_LASERSCAN_POINT_SIZE,
+};
 
 type NormalizedLaserScan = {
   timestamp: Time;
@@ -382,6 +388,7 @@ export class LaserScans extends SceneExtension<LaserScanHistoryRenderable> {
         topic,
         messageFields,
         config,
+        DEFAULT_SETTINGS,
       );
       node.handler = handler;
       node.icon = "Radar";

@@ -87,6 +87,30 @@ describe("rewriteTopicReference", () => {
     expect(rewriteTopicReference("/camera/image", topics, "pmt_007")).toBeUndefined();
     expect(rewriteTopicReference("not-a-topic", topics, "pmt_007")).toBeUndefined();
   });
+
+  it("re-namespaces a robot-ID reference even when the topic is absent from the source", () => {
+    // SD0452000 looks like a robot ID, so the reference is adapted to the connected robot even
+    // though it does not publish obstacle_avoidance_status — the panel then shows the current
+    // robot's topic name and binds if the topic appears later on a live connection.
+    expect(
+      rewriteTopicReference("/SD0452000/obstacle_avoidance_status.status", topics, "SD04XPOR2209"),
+    ).toBe("/SD04XPOR2209/obstacle_avoidance_status.status");
+    expect(rewriteTopicReference("/MV500PCA5011/scan", topics, "pmt_007")).toBe("/pmt_007/scan");
+  });
+
+  it("does not force-rewrite functional first segments when the topic is absent", () => {
+    // move_base_simple / safety_region are part of the real topic name, not a robot namespace.
+    expect(rewriteTopicReference("/move_base_simple/goal", topics, "pmt_007")).toBeUndefined();
+    expect(
+      rewriteTopicReference("/safety_region/lidar/obstacle_region", topics, "pmt_007"),
+    ).toBeUndefined();
+  });
+
+  it("returns undefined when the reference is already under the current namespace", () => {
+    expect(
+      rewriteTopicReference("/SD04XPOR2209/obstacle_avoidance_status", topics, "SD04XPOR2209"),
+    ).toBeUndefined();
+  });
 });
 
 describe("rewriteConfigTopics", () => {

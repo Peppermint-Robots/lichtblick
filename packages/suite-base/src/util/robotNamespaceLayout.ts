@@ -35,6 +35,16 @@ const NAMESPACED_TOPIC_REGEX = /^\/([^/]+)\/.+/;
 const TOPIC_REFERENCE_REGEX = /^(\/[A-Za-z0-9_/-]+)(.*)$/;
 
 /**
+ * Whether a first path segment looks like a Peppermint robot ID (all-uppercase alphanumerics with
+ * at least one digit, e.g. SD0452000, MV500PCA5011, SD04XPOR2209). Distinguishes another robot's
+ * namespace from a functional group like `safety_region` or `move_base_simple`, which must never
+ * be re-namespaced.
+ */
+function looksLikeRobotNamespace(segment: string): boolean {
+  return /^[A-Z0-9]{4,}$/.test(segment) && /[0-9]/.test(segment);
+}
+
+/**
  * Determine the robot namespace for a set of topics.
  *
  * The `robot_id` global variable wins when set to a non-empty string. Otherwise topics are
@@ -81,11 +91,18 @@ export function detectRobotNamespace(
  *
  * Returns the rewritten string, or undefined when no rewrite applies:
  * - the reference already exists in the source (leave it alone), or
- * - no matching topic exists under the detected namespace.
+ * - no rewrite target could be determined.
  *
  * Handles both directions of adaptation:
- * - generic reference:            "/odom"        -> "/pmt_007/odom"
- * - other robot's reference:      "/pmt_001/odom" -> "/pmt_007/odom"
+ * - generic reference:            "/odom"        -> "/pmt_007/odom" (only when that topic exists)
+ * - other robot's reference:      "/SD0452000/odom" -> "/pmt_007/odom"
+ *
+ * A reference under another robot's namespace (first segment that looks like a robot ID) is
+ * re-namespaced even when the current source does not have the topic: the panel then shows the
+ * current robot's topic name (no data, rather than another robot's name), and on a live
+ * connection it binds the moment the topic starts being published. Functional first segments
+ * (`/safety_region/...`, `/move_base_simple/goal`) are only rewritten when the target topic
+ * exists, since their first segment is part of the real topic name.
  */
 export function rewriteTopicReference(
   value: string,
@@ -112,9 +129,15 @@ export function rewriteTopicReference(
   // Reference namespaced under a different robot -> re-namespace
   const secondSlash = topicPart.indexOf("/", 1);
   if (secondSlash > 0) {
+    const firstSegment = topicPart.slice(1, secondSlash);
     const renamed = `/${namespace}${topicPart.slice(secondSlash)}`;
-    if (topicNames.has(renamed)) {
-      return renamed + rest;
+    if (renamed !== topicPart) {
+      if (topicNames.has(renamed)) {
+        return renamed + rest;
+      }
+      if (looksLikeRobotNamespace(firstSegment)) {
+        return renamed + rest;
+      }
     }
   }
 

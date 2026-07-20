@@ -59,8 +59,12 @@ message-path grammar forbids variables in the topic-name position).
 - `packages/suite-base/src/util/robotNamespaceLayout.ts`: `detectRobotNamespace` picks the most
   common first path segment (denylist: `diagnostics`, `rosout`, `parameter_events`, `clock`;
   overridable via the `robot_id` global variable), and `rewriteConfigTopics` recursively rewrites
-  topic references in every panel config to the connected robot's namespace. A reference is only
-  rewritten if the target topic actually exists in the source, so unknown topics are left alone.
+  topic references in every panel config to the connected robot's namespace. A reference whose
+  first segment looks like a robot ID (all-uppercase alphanumeric with digits, e.g. `SD0452000`)
+  is re-namespaced even when the connected source lacks that topic — the panel then shows the
+  current robot's topic name and binds if the topic appears later on a live connection. Generic
+  references (`/odom`) and functional first segments (`/safety_region/...`) are only rewritten
+  when the target topic actually exists.
 - Runs for any data source (MCAP bag or live connection) and any layout, not just Peppermint's own.
 
 ## Automatic topic visibility — works on BOTH builds

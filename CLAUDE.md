@@ -85,6 +85,39 @@ Since all of this lives in shared `suite-base` and mounts in the shared `Workspa
 resolution and visibility auto-enable are active on the desktop build exactly as on web** — no
 desktop-specific wiring needed.
 
+## Robot Mode panel (`packages/suite-base/src/panels/RobotMode/`)
+
+Shows the robot's overall operating mode. No single topic carries it, and the stock Indicator panel
+cannot express it: Indicator subscribes to exactly one topic and compares the whole value with `===`,
+whereas the drive mode is one field inside a **stringified float array**.
+
+Inputs (all subscribed by the panel; topics are stored unnamespaced and rewritten by the
+robot-namespace adapter like any other layout topic):
+
+| Topic | Type | Used for |
+| --- | --- | --- |
+| `op_speed_from_gui` | `std_msgs/String` | `[0]` drive mode, `[3]` auto play/pause |
+| `auto_mode_status` | `std_msgs/Float32` | play flag fallback (2 Hz, latched) |
+| `modbus_to_gui` | `std_msgs/UInt8MultiArray` | `[6]` e-stop, `[10]` stop-and-hold button |
+| `initial_localization_status` | `GenericStatus` | `state == 1` → auto-localization running |
+| `current_velocity_source` | `std_msgs/String` | `teleop_cmd_vel` → teleop |
+
+`op_speed_from_gui` is `"[mode, manual_speed, auto_speed, auto_started]"` with **two encodings on the
+wire** — the C++ `std::to_string` form from state_manager (`"[1.000000,0.400000,...]"`) and strict
+JSON from the mqtt/FMS clients (`"[1.0, 0.4, ...]"`). `parseOpSpeed` accepts both and returns
+`undefined` rather than throwing, mirroring `LocalizationManager::parseOpSpeedPayload`. Mode values
+mirror `enum class Mode` in `state_machine_context.hpp`: 0 MANUAL, 1 AUTO, 2 TELEOP, 3 AUTO_LOC.
+
+`deriveRobotMode` applies a deliberate **safety-first precedence**: e-stop → pause button →
+auto-localization → teleop → auto (play/paused) → manual → unknown. A pressed e-stop is what the
+operator most needs to see, so it outranks every software mode. `auto_started` is force-zeroed by
+state_manager for non-AUTO modes, so the play/pause split only applies under AUTO; `auto_mode_status`
+is the fallback because `op_speed_from_gui` is published **on change only** and a late-joining
+subscriber can otherwise sit blank.
+
+All derivation is pure and unit-tested in `deriveRobotMode.test.ts` — extend the tests there rather
+than reasoning about the panel through the UI.
+
 ## MCAP latched / publish-once retention
 
 Transient-local / published-once topics (notably `/tf_static`) were dropped after seeks. Fixes,

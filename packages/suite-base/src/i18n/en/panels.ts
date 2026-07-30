@@ -18,6 +18,9 @@ export const panels = {
   imageDescription: "Display annotated images.",
   indicator: "Indicator",
   indicatorDescription: "Display a colored and/or textual indicator based on a threshold value.",
+  robotMode: "Robot Mode",
+  robotModeDescription:
+    "Display the robot's operating mode (auto, manual, teleop, paused, e-stop, auto-localization) combined from several topics.",
   log: "Log",
   logDescription: "Display logs by node and severity level.",
   map: "Map",

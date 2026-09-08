@@ -18,6 +18,9 @@ export const panels = {
   imageDescription: "Display annotated images.",
   indicator: "Indicator",
   indicatorDescription: "Display a colored and/or textual indicator based on a threshold value.",
+  robotErrors: "Robot Errors",
+  robotErrorsDescription:
+    "List the robot's currently active error or warning codes, as shown on the robot's GUI.",
   robotMode: "Robot Mode",
   robotModeDescription:
     "Display the robot's operating mode (auto, manual, teleop, paused, e-stop, auto-localization) combined from several topics.",

@@ -23,6 +23,7 @@ import pieChartThumbnail from "./PieChart/thumbnail.png";
 import plotThumbnail from "./Plot/thumbnail.png";
 import publishThumbnail from "./Publish/thumbnail.png";
 import rawMessagesThumbnail from "./RawMessages/thumbnail.png";
+import robotErrorsThumbnail from "./RobotErrors/thumbnail.png";
 import robotModeThumbnail from "./RobotMode/thumbnail.png";
 import stateTransitionsThumbnail from "./StateTransitions/thumbnail.png";
 import tabThumbnail from "./Tab/thumbnail.png";
@@ -84,6 +85,13 @@ export const getBuiltin: (t: TFunction<"panels">) => PanelInfo[] = (t) => [
     description: t("robotModeDescription"),
     thumbnail: robotModeThumbnail,
     module: async () => await import("./RobotMode"),
+  },
+  {
+    title: t("robotErrors"),
+    type: "RobotErrors",
+    description: t("robotErrorsDescription"),
+    thumbnail: robotErrorsThumbnail,
+    module: async () => await import("./RobotErrors"),
   },
   {
     title: t("teleop"),

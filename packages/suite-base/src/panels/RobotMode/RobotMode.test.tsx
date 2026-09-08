@@ -41,7 +41,7 @@ function setup(configOverride?: Partial<RobotModeConfig>) {
   const emit = (messages: MessageEvent[]) => {
     act(() => {
       (context.onRender as unknown as RenderFn)(
-        { currentFrame: messages } as unknown as Immutable<RenderState>,
+        { currentFrame: messages },
         () => {},
       );
     });
@@ -57,7 +57,7 @@ function message(topic: string, msg: unknown): MessageEvent {
     receiveTime: { sec: 0, nsec: 0 },
     sizeInBytes: 0,
     message: msg,
-  } as MessageEvent;
+  };
 }
 
 describe("RobotMode panel", () => {

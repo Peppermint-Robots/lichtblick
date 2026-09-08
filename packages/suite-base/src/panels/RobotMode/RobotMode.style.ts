@@ -7,8 +7,24 @@
 
 import { makeStyles } from "tss-react/mui";
 
-export const useStyles = makeStyles<{ style?: "bulb" | "background"; backgroundColor?: string }>()(
-  ({ spacing, palette }, { style, backgroundColor = "transparent" }) => ({
+export const useStyles = makeStyles<{
+  style?: "bulb" | "background";
+  backgroundColor?: string;
+}>()((theme, { style, backgroundColor = "transparent" }) => {
+  const { spacing, palette } = theme;
+
+  // In "background" style the panel is filled with the mode color, which ranges from a dark e-stop
+  // red to a bright orange/yellow, so the theme's fixed grey secondary text is unreadable on the
+  // light ones — on the pause-button orange it comes out at a 1.02:1 contrast ratio, i.e. invisible.
+  // Take the same contrastText MUI computes for the mode color, which keeps every mode above 3:1.
+  // The detail line is kept subordinate to the mode label by weight and size, not by fading, since
+  // fading is what destroyed the contrast in the first place.
+  const detailColor =
+    style === "background"
+      ? palette.augmentColor({ color: { main: backgroundColor } }).contrastText
+      : palette.text.secondary;
+
+  return {
     root: {
       flexGrow: 1,
       justifyContent: "center",
@@ -44,11 +60,12 @@ export const useStyles = makeStyles<{ style?: "bulb" | "background"; backgroundC
       textAlign: "center",
     },
     details: {
-      fontSize: "clamp(9px, min(1vw, 1vh), 14px)",
+      fontSize: "clamp(10px, min(1.1vw, 1.1vh), 15px)",
       fontFamily: "monospace",
-      color: palette.text.secondary,
+      fontWeight: 500,
+      color: detailColor,
       textAlign: "center",
       whiteSpace: "pre-wrap",
     },
-  }),
-);
+  };
+});

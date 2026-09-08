@@ -64,7 +64,7 @@ import { SceneExtensionConfig } from "./SceneExtensionConfig";
 import { ScreenOverlay } from "./ScreenOverlay";
 import { SettingsManager, SettingsTreeEntry } from "./SettingsManager";
 import { SharedGeometry } from "./SharedGeometry";
-import { CameraState } from "./camera";
+import { CameraState, isDefaultCameraView, makeDefaultCameraState } from "./camera";
 import { DARK_OUTLINE, LIGHT_OUTLINE, stringToRgb } from "./color";
 import { HOVER_PICK_THROTTLE_MS } from "./constants";
 import { FRAME_TRANSFORMS_DATATYPES, FRAME_TRANSFORM_DATATYPES } from "./foxglove";
@@ -208,6 +208,9 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
   public cameraHandler: ICameraHandler;
 
   #imageModeExtension?: ImageMode;
+
+  /** Last value reported by canResetView(), so `resetViewChanged` is emitted only on a change. */
+  #lastCanResetView = false;
 
   public measurementTool: MeasurementTool;
   public publishClickTool: PublishClickTool;
@@ -411,6 +414,10 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
       case "3d": {
         this.cameraHandler = new CameraStateSettings(this, this.#canvas, aspect);
         this.#addSceneExtension(this.cameraHandler);
+        // Drives the reset-view button's visibility. `cameraMove` fires continuously while the
+        // user drags, so only a change in the answer is forwarded — emitting on every frame would
+        // re-render the overlay throughout the gesture.
+        this.on("cameraMove", this.#updateCanResetView);
         break;
       }
     }
@@ -441,6 +448,9 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
     this.#watchDevicePixelRatio();
 
     this.setCameraState(config.cameraState);
+    // Baseline for #updateCanResetView. A layout usually restores a moved camera, so this is often
+    // already true — getting it wrong here would leave the button stuck on after the first reset.
+    this.#lastCanResetView = this.canResetView();
     this.animationFrame();
   }
 
@@ -1087,13 +1097,42 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
   }
 
   public canResetView(): boolean {
-    return this.#imageModeExtension?.hasModifiedView() ?? false;
+    if (this.interfaceMode === "image") {
+      return this.#imageModeExtension?.hasModifiedView() ?? false;
+    }
+    // In 3D there is nothing to reset until the user has actually moved off the default vantage
+    // point, so the button stays out of the way until it would do something.
+    return !isDefaultCameraView(this.getCameraState());
   }
 
   public resetView(): void {
-    this.#imageModeExtension?.resetViewModifications();
+    if (this.interfaceMode === "image") {
+      this.#imageModeExtension?.resetViewModifications();
+      this.queueAnimationFrame();
+      return;
+    }
+
+    // Same reset the "Reset camera" settings action performs, so the two routes cannot disagree.
+    // The config write persists it into the layout; applying it to the camera handler as well
+    // moves the view now rather than waiting for the config to round-trip through React, and keeps
+    // canResetView() honest for the change check below.
+    const defaultState = makeDefaultCameraState();
+    this.updateConfig((draft) => {
+      draft.cameraState = defaultState;
+    });
+    this.setCameraState(defaultState);
+    this.#updateCanResetView();
     this.queueAnimationFrame();
   }
+
+  /** Emit `resetViewChanged` only when the answer actually flips. */
+  #updateCanResetView = (): void => {
+    const canReset = this.canResetView();
+    if (canReset !== this.#lastCanResetView) {
+      this.#lastCanResetView = canReset;
+      this.emit("resetViewChanged", this);
+    }
+  };
 
   public setSelectedRenderable(selection: PickedRenderable | undefined): void {
     if (this.#selectedRenderable === selection) {

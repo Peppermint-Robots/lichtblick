@@ -2469,4 +2469,90 @@ describe("Renderer resetAllFramesCursor event handling", () => {
     // Then: Event should not be emitted for forward seek
     expect(resetListener).not.toHaveBeenCalled();
   });
+
+  describe("reset view", () => {
+    const movedCamera = {
+      ...DEFAULT_CAMERA_STATE,
+      targetOffset: [10.46, 26.25, 0] as [number, number, number],
+      distance: 33.4,
+    };
+
+    it("offers no reset while the camera is still at the default", () => {
+      const renderer = new Renderer({ ...defaultRendererProps, canvas });
+      expect(renderer.canResetView()).toBe(false);
+      renderer.dispose();
+    });
+
+    it("offers a reset once the camera has been moved off the default", () => {
+      const renderer = new Renderer({ ...defaultRendererProps, canvas });
+
+      renderer.setCameraState(movedCamera);
+
+      expect(renderer.canResetView()).toBe(true);
+      renderer.dispose();
+    });
+
+    it("restores the default camera and withdraws the offer", () => {
+      const renderer = new Renderer({ ...defaultRendererProps, canvas });
+      renderer.setCameraState(movedCamera);
+
+      renderer.resetView();
+
+      // The camera handler round-trips through three.js, so the value that comes back is
+      // 19.999999999999993 rather than exactly 20 — which is why canResetView() compares with an
+      // epsilon instead of strict equality. Without it the button would never hide after a reset.
+      const state = renderer.getCameraState()!;
+      expect(state.distance).toBeCloseTo(DEFAULT_CAMERA_STATE.distance, 6);
+      expect(state.targetOffset[0]).toBeCloseTo(0, 6);
+      expect(state.targetOffset[1]).toBeCloseTo(0, 6);
+      expect(renderer.canResetView()).toBe(false);
+      renderer.dispose();
+    });
+
+    it("writes the reset into the config so the layout persists it", () => {
+      const renderer = new Renderer({
+        ...defaultRendererProps,
+        config: { ...defaultRendererConfig, cameraState: movedCamera },
+        canvas,
+      });
+
+      renderer.resetView();
+
+      expect(renderer.config.cameraState).toEqual(DEFAULT_CAMERA_STATE);
+      renderer.dispose();
+    });
+
+    it("announces the change so the button can hide itself", () => {
+      // The panel restores a moved camera from the layout, which is the case that previously left
+      // the button stuck on: the baseline must start at `true` for the reset to register a change.
+      const renderer = new Renderer({
+        ...defaultRendererProps,
+        config: { ...defaultRendererConfig, cameraState: movedCamera },
+        canvas,
+      });
+      const onChange = jest.fn();
+      renderer.on("resetViewChanged", onChange);
+
+      expect(renderer.canResetView()).toBe(true);
+      renderer.resetView();
+
+      expect(onChange).toHaveBeenCalled();
+      expect(renderer.canResetView()).toBe(false);
+      renderer.dispose();
+    });
+
+    it("does not hand out the shared default, so repeated resets stay independent", () => {
+      const renderer = new Renderer({ ...defaultRendererProps, canvas });
+
+      renderer.resetView();
+      const first = renderer.config.cameraState;
+      renderer.setCameraState(movedCamera);
+      renderer.resetView();
+
+      expect(first.targetOffset).not.toBe(DEFAULT_CAMERA_STATE.targetOffset);
+      expect(renderer.config.cameraState).toEqual(DEFAULT_CAMERA_STATE);
+      renderer.dispose();
+    });
+  });
+
 });

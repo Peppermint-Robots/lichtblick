@@ -5,7 +5,7 @@
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   AppBarProps,
@@ -33,6 +33,32 @@ import LocalStorageAppConfiguration from "./services/LocalStorageAppConfiguratio
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
+/**
+ * Custom extensions installed automatically on startup
+ * To add one: put the .foxe in packages/suite-web/public/extensions/
+ * and add an entry here. Bump version to push an update
+ */
+const bundled_extensions = [
+  {
+    id: "peppermint.rosbag-analyzer",
+    version: "1.0.0",
+    url: "/extensions/peppermint.rosbag-analyzer-1.0.0.foxe",
+  },
+
+  {
+    id: "Cloudini.foxglove-cloudini-converter",
+    version: "1.2.0",
+    url: "/extensions/cloudini.foxglove-cloudini-converter-1.2.0.foxe",
+  },
+
+  {
+    id: "peppermint.amcl-particle-cloud" ,
+    version: "0.2.0",
+    url : "/extensions/peppermint.amcl-particle-cloud-0.2.0.foxe",
+  },
+
+];
+
 export function WebRoot(props: {
   extraProviders: React.JSX.Element[] | undefined;
   dataSources: IDataSourceFactory[] | undefined;
@@ -49,9 +75,12 @@ export function WebRoot(props: {
     [],
   );
 
+  const [localLoader] = useState(() => new IdbExtensionLoader("local"));
+  // this is for bundled extensions
+  // install them into same loader the app will read from
   const defaultExtensionLoaders: IExtensionLoader[] = [
     new IdbExtensionLoader("org"),
-    new IdbExtensionLoader("local"),
+    localLoader,
   ];
   const url = new URL(globalThis.location.href);
   const workspace = url.searchParams.get("workspace");
@@ -89,6 +118,50 @@ export function WebRoot(props: {
 
     return props.dataSources ?? sources;
   }, [props.dataSources]);
+
+  const [extensionsReady, setExtensionsReady] = useState(false);
+
+  // install bundled ext once and if fails then wont block other things
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      for (const { id, version, url: foxeUrl } of bundled_extensions) {
+        if (cancelled) {
+          return;
+        }
+        try {
+          const existing = await localLoader.getExtension(id);
+          if (existing?.version === version) {
+            continue; // already installed and same version
+          }
+
+          const response = await fetch(foxeUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          await localLoader.installExtension({
+            foxeFileData: new Uint8Array(await response.arrayBuffer()),
+          });
+        } catch (error) {
+          console.error(`Failed to install bundled extension ${id}:`, error);
+        }
+      }
+
+      if (!cancelled) {
+        setExtensionsReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [localLoader]);
+
+  if (!extensionsReady) {
+    return <div style={{ padding: 24, fontFamily: "sans-serif" }}>Loading extensions...</div>;
+  }
 
   return (
     <SharedRoot

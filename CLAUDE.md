@@ -46,6 +46,34 @@ same browser, not a second feature — desktop runs with the new top nav, so the
 the only route. If someone reports that layout switching "disappeared", check that tab before
 suspecting a regression.
 
+## Default extensions (bundled into both builds)
+
+`.foxe` extensions can ship with the app, available on every install of either build without being
+copied into the user's extension storage.
+
+- **Registry:** `packages/suite-base/src/extensions/index.ts` exports `bundledExtensions` (URLs of
+  the `.foxe` files). The list comes from the private submodule's `privateExtensions` — each a
+  `new URL("./….foxe", import.meta.url)`, which webpack emits as a content-hashed asset, so the fork
+  itself needs no `.foxe` loader rule — and is empty without it.
+- **Loader:** `services/extension/BundledExtensionLoader.ts` (`type: "bundled"`, namespace `local`)
+  fetches and parses every file once per session, with a per-file timeout: the existing
+  `ExtensionsLoadingState` gate holds every layout until extensions are registered, so one stalled
+  download must not hang the workspace. Desktop fetches the assets over `file://`.
+- **Catalog rules** (`providers/ExtensionCatalogProvider/`): bundled entries are marked
+  `bundled: true` (set from the loader type, never from a package.json), are never install targets,
+  and cannot be uninstalled (all three uninstall paths in the Extensions UI hide it). When the same
+  extension is also installed — matched by `id` or `qualifiedName`, since the desktop loader derives
+  ids differently — the installed copy wins unless its version is lower, so a user can
+  trial a newer build while a stale old install cannot hide a newer bundled one; installing a copy
+  older than the bundled one is refused up front. Installing or uninstalling a copy of a bundled
+  extension re-runs `refreshAllExtensions`. A refresh publishes only if it is the latest one and no
+  install/uninstall landed while it ran (otherwise it starts over), so it never undoes a change.
+- **Wiring:** both entry points append `new BundledExtensionLoader(bundledExtensions)` to their
+  extension loaders (desktop imports both from the barrel — see the import gotcha above).
+- Every bundled `.foxe` must contain `package.json` with `displayName` (desktop's panel-ID prefix,
+  so saved layouts depend on it) and `dist/extension.js`. A host application embedding the web
+  build must serve the hashed `.foxe` files next to the bundle, as it already does for `.wasm`.
+
 ## Proprietary layouts and panels (git submodule)
 
 `packages/suite-base/src/layouts/private/` is a **git submodule** pointing at a private repository

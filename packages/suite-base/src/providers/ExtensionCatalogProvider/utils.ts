@@ -29,6 +29,53 @@ export function extensionUniqueKey(ext: ExtensionInfo): string {
   return `${ext.id}-${ext.namespace}`;
 }
 
+// Whether two entries are copies of the same extension. Ids alone are not enough: the desktop
+// loader derives ids differently from the browser loaders (it lowercases the publisher), so
+// entries also match on qualifiedName, which prefixes the extension's panel ids.
+export function isSameExtension(a: ExtensionInfo, b: ExtensionInfo): boolean {
+  return a.id === b.id || (Boolean(a.qualifiedName) && a.qualifiedName === b.qualifiedName);
+}
+
+// `bundled` records which loader an entry came from; never trust a value spread in from an
+// extension's package.json.
+export function withBundledFlag(extension: ExtensionInfo, loader: IExtensionLoader): ExtensionInfo {
+  if (loader.type === "bundled") {
+    return { ...extension, bundled: true };
+  }
+  return extension.bundled == undefined ? extension : _.omit(extension, "bundled");
+}
+
+export type LoaderListing = { loader: IExtensionLoader; extensions: ExtensionInfo[] };
+
+// Whether `copy` has a lower version than `other`. False when either version is missing or not
+// purely numeric (a package.json is not required to have one), so such copies are never "older".
+export function isOlderVersion(copy: ExtensionInfo, other: ExtensionInfo): boolean {
+  const a: unknown = copy.version;
+  const b: unknown = other.version;
+  return typeof a === "string" && typeof b === "string" && compareVersions(a, b) < 0;
+}
+
+// When an extension is both bundled with the app and installed (locally or by the organization),
+// keep the installed copy unless it is older than the bundled one. Losing entries are dropped, so
+// they are neither loaded nor listed. Missing or non-numeric versions: the installed copy wins.
+export function resolveBundledPrecedence(listings: readonly LoaderListing[]): LoaderListing[] {
+  const isBundled = ({ loader }: LoaderListing) => loader.type === "bundled";
+  const installed = listings
+    .filter((listing) => !isBundled(listing))
+    .flatMap(({ extensions }) => extensions);
+  const bundled = listings.filter(isBundled).flatMap(({ extensions }) => extensions);
+  const losers = new Set<ExtensionInfo>();
+  for (const bundledExtension of bundled) {
+    for (const copy of installed.filter((ext) => isSameExtension(ext, bundledExtension))) {
+      losers.add(isOlderVersion(copy, bundledExtension) ? copy : bundledExtension);
+    }
+  }
+  return listings.map((listing) => ({
+    ...listing,
+    extensions: listing.extensions.filter((extension) => !losers.has(extension)),
+  }));
+}
+
 async function tryLoadFromCache(
   extension: ExtensionInfo,
   orgCacheLoader: IExtensionLoader | undefined,
@@ -145,11 +192,14 @@ export async function tryInstallSingleLoader(
   currentExternalId: string | undefined,
 ): Promise<SingleLoaderInstallResult> {
   try {
-    const info = await loader.installExtension({
-      foxeFileData: extension.buffer,
-      file: extension.file,
-      externalId: loader.type === "server" ? undefined : currentExternalId,
-    });
+    const info = withBundledFlag(
+      await loader.installExtension({
+        foxeFileData: extension.buffer,
+        file: extension.file,
+        externalId: loader.type === "server" ? undefined : currentExternalId,
+      }),
+      loader,
+    );
     const externalId = loader.type === "server" ? info.externalId : undefined;
     const { raw } = await loader.loadExtension(getExtensionLoadId(loader, info));
     const contributionPoints = buildContributionPoints(info, raw);

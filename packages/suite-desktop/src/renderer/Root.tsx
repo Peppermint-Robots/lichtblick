@@ -26,6 +26,8 @@ import {
   VelodyneDataSourceFactory,
   bundledLayouts,
   BundledLayoutLoader,
+  bundledExtensions,
+  BundledExtensionLoader,
 } from "@lichtblick/suite-base";
 
 import { DesktopExtensionLoader } from "./services/DesktopExtensionLoader";
@@ -76,6 +78,7 @@ export default function Root(props: RootProps): React.JSX.Element {
   const [extensionLoaders] = useState(() => [
     new IdbExtensionLoader("org"),
     new DesktopExtensionLoader(desktopBridge),
+    new BundledExtensionLoader(bundledExtensions),
   ]);
 
   // Bundled defaults (shared with the web build) plus any layouts the user dropped into

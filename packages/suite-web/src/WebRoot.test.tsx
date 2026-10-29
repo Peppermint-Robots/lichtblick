@@ -20,6 +20,8 @@ jest.mock("@lichtblick/suite-base", () => {
   return {
     __esModule: true,
     AppSetting: { SHOW_DEBUG_PANELS: "showDebugPanels" },
+    BundledExtensionLoader: Stub,
+    bundledExtensions: [],
     IdbExtensionLoader: Stub,
     RemoteExtensionLoader: Stub,
     FoxgloveWebSocketDataSourceFactory: Stub,

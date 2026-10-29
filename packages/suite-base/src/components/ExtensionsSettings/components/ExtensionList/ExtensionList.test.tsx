@@ -435,5 +435,96 @@ describe("ExtensionList Component", () => {
       // Then
       expect(screen.getByRole("button", { name: "Uninstall" })).toBeInTheDocument();
     });
+
+    it("shows a caption instead of Uninstall for an extension bundled with the app", () => {
+      // Given
+      const entry = ExtensionBuilder.extensionMarketplaceDetail({
+        namespace: "local",
+        bundled: true,
+      });
+      (useExtensionCatalog as jest.Mock).mockImplementation((selector) =>
+        selector({ installedExtensions: [entry], uninstallExtension: jest.fn() }),
+      );
+
+      // When
+      render(
+        <ExtensionList
+          namespace="local"
+          entries={[entry]}
+          filterText=""
+          selectExtension={jest.fn()}
+        />,
+      );
+
+      // Then
+      expect(screen.queryByRole("button", { name: "Uninstall" })).not.toBeInTheDocument();
+      expect(screen.getByText(/bundled/i)).toBeInTheDocument();
+    });
+
+    it("does not let a bundled extension be selected for bulk uninstall", () => {
+      // Given
+      const bundled = ExtensionBuilder.extensionMarketplaceDetail({
+        id: "bundled",
+        namespace: "local",
+        bundled: true,
+      });
+      const installed = ExtensionBuilder.extensionMarketplaceDetail({
+        id: "installed",
+        namespace: "local",
+      });
+      (useExtensionCatalog as jest.Mock).mockImplementation((selector) =>
+        selector({ installedExtensions: [bundled, installed], uninstallExtension: jest.fn() }),
+      );
+
+      // When
+      render(
+        <ExtensionList
+          namespace="local"
+          entries={[bundled, installed]}
+          filterText=""
+          selectExtension={jest.fn()}
+        />,
+      );
+
+      // Then: rows render in entry order, so the bundled row is first
+      const checkboxes = screen.getAllByRole("checkbox", { name: /select row/i });
+      expect((checkboxes[0] as HTMLInputElement).disabled).toBe(true);
+      expect((checkboxes[1] as HTMLInputElement).disabled).toBe(false);
+    });
+
+    it("leaves a selected extension out of bulk uninstall once it turns out to be bundled", () => {
+      // Given: an installed extension is selected
+      const entry = ExtensionBuilder.extensionMarketplaceDetail({ id: "ext", namespace: "local" });
+      (useExtensionCatalog as jest.Mock).mockImplementation((selector) =>
+        selector({ installedExtensions: [entry], uninstallExtension: jest.fn() }),
+      );
+      const { rerender } = render(
+        <ExtensionList
+          namespace="local"
+          entries={[entry]}
+          filterText=""
+          selectExtension={jest.fn()}
+        />,
+      );
+      fireEvent.click(screen.getByRole("checkbox", { name: /select row/i }));
+      expect(screen.getByRole("button", { name: "Uninstall 1" })).toBeInTheDocument();
+
+      // When: the active copy becomes the bundled one (e.g. the user's copy was uninstalled)
+      const bundled = { ...entry, bundled: true };
+      (useExtensionCatalog as jest.Mock).mockImplementation((selector) =>
+        selector({ installedExtensions: [bundled], uninstallExtension: jest.fn() }),
+      );
+      rerender(
+        <ExtensionList
+          namespace="local"
+          entries={[bundled]}
+          filterText=""
+          selectExtension={jest.fn()}
+        />,
+      );
+
+      // Then
+      expect(screen.queryByRole("button", { name: /^Uninstall \d/ })).not.toBeInTheDocument();
+    });
   });
 });

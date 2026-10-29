@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import {
   AppBarProps,
   AppSetting,
+  BundledExtensionLoader,
   IExtensionLoader,
   FoxgloveWebSocketDataSourceFactory,
   IDataSourceFactory,
@@ -23,6 +24,7 @@ import {
   SampleNuscenesDataSourceFactory,
   SharedRoot,
   UlogLocalDataSourceFactory,
+  bundledExtensions,
 } from "@lichtblick/suite-base";
 import { APP_CONFIG } from "@lichtblick/suite-base/constants/config";
 import { AppParametersInput } from "@lichtblick/suite-base/context/AppParametersContext";
@@ -52,6 +54,7 @@ export function WebRoot(props: {
   const defaultExtensionLoaders: IExtensionLoader[] = [
     new IdbExtensionLoader("org"),
     new IdbExtensionLoader("local"),
+    new BundledExtensionLoader(bundledExtensions),
   ];
   const url = new URL(globalThis.location.href);
   const workspace = url.searchParams.get("workspace");

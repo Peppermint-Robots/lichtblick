@@ -48,7 +48,7 @@ const useExtensionSettings = (): UseExtensionSettingsHook => {
     return (installed ?? []).map((entry) => {
       const marketplaceEntry = marketplaceMap[entry.id];
       if (marketplaceEntry != undefined) {
-        return { ...marketplaceEntry, namespace: entry.namespace };
+        return { ...marketplaceEntry, namespace: entry.namespace, bundled: entry.bundled };
       }
 
       return {
@@ -67,6 +67,7 @@ const useExtensionSettings = (): UseExtensionSettingsHook => {
         readme: entry.readme,
         changelog: entry.changelog,
         size: entry.size,
+        bundled: entry.bundled,
       };
     });
   }, [installed, marketplaceMap]);

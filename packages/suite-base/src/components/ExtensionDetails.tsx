@@ -9,6 +9,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { Button, Link, Tab, Tabs, Typography, Divider } from "@mui/material";
 import DOMPurify from "dompurify";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAsync, useMountedState } from "react-use";
 
 import { formatByteSize } from "@lichtblick/den/format";
@@ -23,6 +24,7 @@ import {
 import Stack from "@lichtblick/suite-base/components/Stack";
 import TextContent from "@lichtblick/suite-base/components/TextContent";
 import { ExtensionDetailsProps, OperationStatus } from "@lichtblick/suite-base/components/types";
+import { useExtensionCatalog } from "@lichtblick/suite-base/context/ExtensionCatalogContext";
 import { useExtensionMarketplace } from "@lichtblick/suite-base/context/ExtensionMarketplaceContext";
 import { isValidUrl } from "@lichtblick/suite-base/util/isValidURL";
 
@@ -42,7 +44,18 @@ export function ExtensionDetails({
   installed,
 }: Readonly<ExtensionDetailsProps>): React.ReactElement {
   const { classes } = useStylesExtensionDetails();
+  const { t } = useTranslation("extensionsSettings");
   const [isInstalled, setIsInstalled] = useState(installed);
+  // Read live: uninstalling a copy that shadowed a bundled extension makes the bundled copy active.
+  const isBundled = useExtensionCatalog(
+    (state) =>
+      state.installedExtensions?.some(
+        (active) =>
+          active.bundled === true &&
+          active.id === extension.id &&
+          active.namespace === extension.namespace,
+      ) ?? false,
+  );
   const [activeTab, setActiveTab] = useState<number>(0);
   const isMounted = useMountedState();
   const marketplace = useExtensionMarketplace();
@@ -125,7 +138,11 @@ export function ExtensionDetails({
             {extension.description}
           </Typography>
         </Stack>
-        {isInstalled ? (
+        {isBundled ? (
+          <Typography variant="caption" color="text.secondary">
+            {t("bundled")}
+          </Typography>
+        ) : isInstalled ? (
           <UninstallButton
             extension={extension}
             onAction={handleUninstall}

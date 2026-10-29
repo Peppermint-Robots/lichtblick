@@ -9,4 +9,5 @@ export const extensionsSettings = {
   checkInternetConnection: "Check your internet connection and try again.",
   searchExtensions: "Search extensions...",
   available: "Available",
+  bundled: "Bundled with the app",
 };

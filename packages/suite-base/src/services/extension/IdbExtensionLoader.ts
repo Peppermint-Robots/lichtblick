@@ -18,8 +18,8 @@ import {
 } from "@lichtblick/suite-base/services/extension/IExtensionLoader";
 import { ALLOWED_FILES } from "@lichtblick/suite-base/services/extension/types";
 import decompressFile from "@lichtblick/suite-base/services/extension/utils/decompressFile";
+import extractExtensionInfo from "@lichtblick/suite-base/services/extension/utils/extractExtensionInfo";
 import extractFoxeFileContent from "@lichtblick/suite-base/services/extension/utils/extractFoxeFileContent";
-import validatePackageInfo from "@lichtblick/suite-base/services/extension/utils/validatePackageInfo";
 import { Namespace } from "@lichtblick/suite-base/types";
 import { ExtensionInfo } from "@lichtblick/suite-base/types/Extensions";
 
@@ -79,31 +79,11 @@ export class IdbExtensionLoader implements IExtensionLoader {
     log.debug("[IndexedDB] Installing extension");
 
     const decompressedData = await decompressFile(foxeFileData);
-    const rawPackageFile = await extractFoxeFileContent(decompressedData, ALLOWED_FILES.PACKAGE);
-    if (!rawPackageFile) {
-      throw new Error(
-        `Corrupted extension. File "${ALLOWED_FILES.PACKAGE}" is missing in the extension source.`,
-      );
-    }
-    const readme = (await extractFoxeFileContent(decompressedData, ALLOWED_FILES.README)) ?? "";
-    const changelog =
-      (await extractFoxeFileContent(decompressedData, ALLOWED_FILES.CHANGELOG)) ?? "";
-
-    const rawInfo = validatePackageInfo(JSON.parse(rawPackageFile) as Partial<ExtensionInfo>);
-    const normalizedPublisher = rawInfo.publisher.replace(/[^A-Za-z0-9_\s]+/g, "");
+    const info = await extractExtensionInfo(decompressedData, this.namespace);
 
     const newExtension: StoredExtension = {
       content: foxeFileData,
-      info: {
-        ...rawInfo,
-        id: `${normalizedPublisher}.${rawInfo.name}`,
-        namespace: this.namespace,
-        qualifiedName: rawInfo.displayName || rawInfo.name,
-        readme,
-        changelog,
-        externalId,
-        size: foxeFileData.length,
-      },
+      info: { ...info, externalId, size: foxeFileData.length },
     };
     const storedExtension = await this.#storage.put(newExtension);
 

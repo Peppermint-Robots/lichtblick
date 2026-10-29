@@ -17,3 +17,6 @@ export const privateLayouts: BundledLayout[] = [];
 
 /** No proprietary panels without the submodule. */
 export const privatePanels: PanelInfo[] = [];
+
+/** No bundled extensions without the submodule. */
+export const privateExtensions: string[] = [];

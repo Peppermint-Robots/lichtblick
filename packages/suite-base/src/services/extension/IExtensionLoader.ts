@@ -13,7 +13,8 @@ export type LoadedExtension = {
   raw: string;
 };
 
-export type TypeExtensionLoader = "browser" | "server" | "filesystem";
+/** "bundled": read-only extensions compiled into the app (see BundledExtensionLoader). */
+export type TypeExtensionLoader = "browser" | "server" | "filesystem" | "bundled";
 
 export type InstallExtensionProps = {
   foxeFileData: Uint8Array;

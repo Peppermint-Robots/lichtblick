@@ -25,4 +25,9 @@ export type ExtensionInfo = {
   readme?: string;
   changelog?: string;
   externalId?: string;
+  /**
+   * Set by the extension catalog for extensions compiled into the app: they cannot be uninstalled,
+   * and an installed copy of the same extension takes precedence unless it is older.
+   */
+  bundled?: boolean;
 };

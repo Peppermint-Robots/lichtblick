@@ -9,7 +9,7 @@ description: "Deep extension system implementation knowledge: IExtensionLoader i
 Defined in `packages/suite-base/src/services/extension/IExtensionLoader.ts`:
 
 ```typescript
-export type TypeExtensionLoader = "browser" | "server" | "filesystem";
+export type TypeExtensionLoader = "browser" | "server" | "filesystem" | "bundled";
 
 export type LoadedExtension = {
   buffer?: Uint8Array;
@@ -24,7 +24,7 @@ export type InstallExtensionProps = {
 
 export interface IExtensionLoader {
   readonly namespace: Namespace;          // "org" | "local"
-  readonly type: TypeExtensionLoader;     // "browser" | "server" | "filesystem"
+  readonly type: TypeExtensionLoader;     // "browser" | "server" | "filesystem" | "bundled"
 
   getExtension(id: string): Promise<ExtensionInfo | undefined>;
   getExtensions(): Promise<ExtensionInfo[]>;
@@ -35,7 +35,7 @@ export interface IExtensionLoader {
 ```
 
 > ⚠️ `installExtension` takes an `InstallExtensionProps` object (with `foxeFileData`), **not** a
-> URL string. The type union is `"browser" | "server" | "filesystem"` — there is no `"indexeddb"`
+> URL string. The type union is `"browser" | "server" | "filesystem" | "bundled"` — there is no `"indexeddb"`
 > or `"remote"` value.
 
 Implementations:
@@ -45,6 +45,7 @@ Implementations:
 | `IdbExtensionLoader` | `services/extension/IdbExtensionLoader.ts` | constructor arg | `"browser"` |
 | `RemoteExtensionLoader` | `services/extension/RemoteExtensionLoader.ts` | constructor arg | `"server"` |
 | `DesktopExtensionLoader` | `suite-desktop/src/renderer/services/DesktopExtensionLoader.ts` | `"local"` | `"filesystem"` |
+| `BundledExtensionLoader` | `services/extension/BundledExtensionLoader.ts` | `"local"` | `"bundled"` |
 
 All loaders implement this interface — the catalog provider doesn't know the backing store.
 
@@ -89,7 +90,17 @@ bridge) rather than IndexedDB. Same `IExtensionLoader` contract.
 
 `packages/suite-base/src/services/extension/RemoteExtensionLoader.ts` \u2014 `type = "server"` (the
 remote/org loader). The `type` value is **`"server"`, not `"remote"`** \u2014 the only valid `type`
-values are `"browser"`, `"server"`, and `"filesystem"`.
+values are `"browser"`, `"server"`, `"filesystem"` and `"bundled"`.
+
+## BundledExtensionLoader
+
+`packages/suite-base/src/services/extension/BundledExtensionLoader.ts` — `namespace = "local"`,
+`type = "bundled"`. Serves read-only extensions compiled into the web and desktop builds (URLs of
+`.foxe` assets from `packages/suite-base/src/extensions/`), fetched and parsed once per session.
+The catalog treats `"bundled"` specially: installs never go to it, its entries get
+`ExtensionInfo.bundled = true` and cannot be uninstalled, and when the same extension (same `id`
+or `qualifiedName`) is also installed, the installed copy wins unless its version is lower
+(`resolveBundledPrecedence` in `providers/ExtensionCatalogProvider/utils.ts`).
 
 ## .foxe Package Format (Detail)
 

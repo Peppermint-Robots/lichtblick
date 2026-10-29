@@ -137,4 +137,22 @@ describe("useExtensionSettings", () => {
       },
     ]);
   });
+
+  it("keeps the bundled flag on installed entries, including ones also in the marketplace", async () => {
+    // "4" is only installed; "5" is also listed in the marketplace, whose entry is shown instead.
+    (useExtensionCatalog as jest.Mock).mockReturnValue([
+      { ...mockInstalledExtensions[0], bundled: true },
+      { ...mockInstalledExtensions[1], id: "5", namespace: "namespace1", bundled: true },
+    ]);
+
+    const { result } = await setupHook();
+
+    const entries = result.current.namespacedData.flatMap(({ entries: list }) => list);
+    expect(entries.map(({ id, bundled }) => ({ id, bundled }))).toEqual(
+      expect.arrayContaining([
+        { id: "4", bundled: true },
+        { id: "5", bundled: true },
+      ]),
+    );
+  });
 });

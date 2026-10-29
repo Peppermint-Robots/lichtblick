@@ -51,10 +51,16 @@ export default function ExtensionList({
       ) ?? false,
     [installedExtensions, namespace],
   );
+  // Extensions bundled with the app are installed but can never be uninstalled.
+  const isUninstallable = useCallback(
+    (extension: ExtensionMarketplaceDetail) =>
+      extension.bundled !== true && isExtensionInstalled(extension.id),
+    [isExtensionInstalled],
+  );
 
   const handleBulkUninstall = useCallback(async () => {
     const selectedExtensions = entries.filter((entry) => selectedExtensionIds.includes(entry.id));
-    const extensionsToUninstall = selectedExtensions.filter((ext) => isExtensionInstalled(ext.id));
+    const extensionsToUninstall = selectedExtensions.filter(isUninstallable);
 
     if (extensionsToUninstall.length === 0) {
       enqueueSnackbar("No installed extensions to uninstall from selection", { variant: "info" });
@@ -93,7 +99,7 @@ export default function ExtensionList({
     analytics,
     enqueueSnackbar,
     entries,
-    isExtensionInstalled,
+    isUninstallable,
     selectedExtensionIds,
     uninstallExtension,
   ]);
@@ -113,7 +119,13 @@ export default function ExtensionList({
         const isInstalled = isExtensionInstalled(extension.id);
         const isExtensionOperating = isOperating(extension.id);
 
-        if (isInstalled) {
+        if (isInstalled && extension.bundled === true) {
+          return (
+            <Typography variant="caption" color="text.secondary">
+              {t("bundled")}
+            </Typography>
+          );
+        } else if (isInstalled) {
           return (
             <UninstallButton
               extension={extension}
@@ -150,7 +162,7 @@ export default function ExtensionList({
     }
 
     const selectedExtensions = entries.filter((entry) => selectedExtensionIds.includes(entry.id));
-    const selectedInstalled = selectedExtensions.filter((ext) => isExtensionInstalled(ext.id));
+    const selectedInstalled = selectedExtensions.filter(isUninstallable);
 
     return (
       <Stack gap={1}>
@@ -192,6 +204,9 @@ export default function ExtensionList({
             }}
             pageSizeOptions={[5, 10, 20]}
             checkboxSelection
+            isRowSelectable={(params) =>
+              (params.row as ExtensionMarketplaceDetail).bundled !== true
+            }
             disableRowSelectionOnClick
             style={{ cursor: "pointer" }}
             onRowClick={(params) => {

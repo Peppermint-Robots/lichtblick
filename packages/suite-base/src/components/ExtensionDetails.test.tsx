@@ -90,6 +90,45 @@ describe("ExtensionDetails Component", () => {
     expect(screen.getByText("CHANGELOG")).toBeInTheDocument();
   });
 
+  it("offers no Uninstall while the active copy is the one bundled with the app", () => {
+    const bundled = ExtensionBuilder.extensionMarketplaceDetail({
+      namespace: "local",
+      bundled: true,
+    });
+    (useExtensionCatalog as jest.Mock).mockImplementation((selector) =>
+      selector({
+        downloadExtension: mockDownloadExtension,
+        installExtensions: mockInstallExtensions,
+        uninstallExtension: mockUninstallExtension,
+        installedExtensions: [bundled],
+      }),
+    );
+
+    render(<ExtensionDetails extension={bundled} onClose={() => {}} installed={true} />);
+
+    expect(screen.queryByRole("button", { name: "Uninstall" })).not.toBeInTheDocument();
+    expect(screen.getByText(/bundled/i)).toBeInTheDocument();
+  });
+
+  it("shows the bundled caption once uninstalling a shadowing copy re-activates the bundled one", () => {
+    // The details view was opened on the user's copy (not bundled); the catalog now holds the
+    // bundled copy of the same extension instead.
+    const userCopy = ExtensionBuilder.extensionMarketplaceDetail({ namespace: "local" });
+    (useExtensionCatalog as jest.Mock).mockImplementation((selector) =>
+      selector({
+        downloadExtension: mockDownloadExtension,
+        installExtensions: mockInstallExtensions,
+        uninstallExtension: mockUninstallExtension,
+        installedExtensions: [{ ...userCopy, bundled: true }],
+      }),
+    );
+
+    render(<ExtensionDetails extension={userCopy} onClose={() => {}} installed={false} />);
+
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+    expect(screen.getByText(/bundled/i)).toBeInTheDocument();
+  });
+
   it("calls onClose when the back button is clicked", () => {
     const mockOnClose = jest.fn();
     render(<ExtensionDetails extension={mockExtension} onClose={mockOnClose} installed={false} />);

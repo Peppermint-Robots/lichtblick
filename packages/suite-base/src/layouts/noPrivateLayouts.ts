@@ -5,6 +5,8 @@
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import type { PanelInfo } from "@lichtblick/suite-base/context/PanelCatalogContext";
+
 import type { BundledLayout } from "./index";
 
 /**
@@ -12,3 +14,6 @@ import type { BundledLayout } from "./index";
  * (i.e. any build without the proprietary layouts submodule). Keeps the build self-contained.
  */
 export const privateLayouts: BundledLayout[] = [];
+
+/** No proprietary panels without the submodule. */
+export const privatePanels: PanelInfo[] = [];

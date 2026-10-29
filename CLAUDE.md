@@ -46,15 +46,30 @@ same browser, not a second feature — desktop runs with the new top nav, so the
 the only route. If someone reports that layout switching "disappeared", check that tab before
 suspecting a regression.
 
-## Proprietary layouts (git submodule)
+## Proprietary layouts and panels (git submodule)
 
 `packages/suite-base/src/layouts/private/` is a **git submodule** pointing at a private repository
 (URL in `.gitmodules`), kept out of this MPL-2.0 repo. Consumed via
 the `@lichtblick/private-layouts` alias, resolved in `packages/suite-base/webpack.ts` (`makeConfig`,
-used by both web and desktop webpack) with a `noPrivateLayouts.ts` empty-list fallback when the
-submodule is absent. The alias is mirrored across several tsconfigs + jest configs — see the
-submodule's own `CLAUDE.md` for the full mirror list and layout-authoring workflow. Never move a
-layout JSON into this repo.
+used by both web and desktop webpack) with a `noPrivateLayouts.ts` fallback, exporting empty lists,
+when the submodule is absent. The alias is mirrored across several tsconfigs + jest configs — see
+the submodule's own `CLAUDE.md` for the full mirror list and authoring workflow. Never move a layout
+JSON, a proprietary panel, or anything naming proprietary topics into this repo.
+
+- `privateLayouts` are spread into `bundledLayouts` (see above).
+- `privatePanels` (`PanelInfo[]`) are appended to the built-in panels in `src/panels/index.ts`.
+  Their `type` strings are persisted in layouts, so the submodule owns and must never rename them.
+- Every export the submodule adds needs a matching empty export in `noPrivateLayouts.ts`, or a
+  checkout without the submodule stops building. Jest always maps the alias to that stub.
+- After `git pull`, run `git submodule update` so the checkout matches the pinned commit.
+
+**Squash-merge caveat.** `main` on the private repo is protected, so changes there go through a PR
+on a branch — and the team squash-merges, which lands the change on `main` under a **new SHA**. A
+pointer committed here that still names the pre-merge commit breaks once GitHub deletes the merged
+branch: a fresh `clone --recurse-submodules` then fails with "reference is not a tree". After the PR
+merges, run `scripts/repoint-private-layouts.sh` and push the fork. It checks that the merged `main`
+has the identical tree before re-pointing (a squash changes the SHA, never the tree) and refuses if
+`main` has moved on beyond your PR, so it cannot silently absorb someone else's change.
 
 Fork tooling must never rewrite files inside the submodule: `eslint.config.mjs` turns
 `@lichtblick/license-header` off for `layouts/private/**` (`yarn lint` runs with `--fix`, which would

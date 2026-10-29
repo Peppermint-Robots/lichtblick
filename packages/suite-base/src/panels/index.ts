@@ -7,6 +7,7 @@
 
 import { TFunction } from "i18next";
 
+import { privatePanels } from "@lichtblick/private-layouts";
 import { PanelInfo } from "@lichtblick/suite-base/context/PanelCatalogContext";
 
 import { TAB_PANEL_TYPE } from "../util/constants";
@@ -205,4 +206,6 @@ export const getBuiltin: (t: TFunction<"panels">) => PanelInfo[] = (t) => [
     description: t("studioPlaybackPerformanceDescription"),
     module: async () => await import("./PlaybackPerformance"),
   },
+  // Proprietary panels from the optional private submodule (empty without it).
+  ...privatePanels,
 ];

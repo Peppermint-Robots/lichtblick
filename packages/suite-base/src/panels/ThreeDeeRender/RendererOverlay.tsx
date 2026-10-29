@@ -267,6 +267,14 @@ export function RendererOverlay(props: Props): React.JSX.Element {
   );
 
   const [showResetViewButton, setShowResetViewButton] = useState(renderer?.canResetView() ?? false);
+  // The renderer is constructed in an effect, so it is still undefined on this component's first
+  // render and the initializer above always resolves to `false`. Re-read it once the renderer
+  // exists: a layout that restores a moved camera is *already* in the resettable state, and
+  // `resetViewChanged` is only emitted when the answer changes, so relying on that event alone
+  // would leave the button hidden forever on exactly the layouts that need it.
+  useEffect(() => {
+    setShowResetViewButton(renderer?.canResetView() ?? false);
+  }, [renderer]);
   useRendererEvent(
     "resetViewChanged",
     useCallback(() => {

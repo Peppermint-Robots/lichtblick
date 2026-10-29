@@ -98,6 +98,39 @@ Since all of this lives in shared `suite-base` and mounts in the shared `Workspa
 resolution and visibility auto-enable are active on the desktop build exactly as on web** — no
 desktop-specific wiring needed.
 
+## 3D panel: reset view
+
+Upstream ships a "Reset view" button in `RendererOverlay`, but it was wired only to image mode —
+`canResetView()` returned `imageModeExtension?.hasModifiedView() ?? false`, which is always `false`
+in 3D, so the button never appeared. Layouts that use `followMode: "follow-none"` with a fixed
+display frame leave no way back after panning away, other than hunting for the scene by hand; the
+button now works in 3D too.
+
+- `Renderer.resetView()` in 3D restores `DEFAULT_CAMERA_STATE` — the same thing the existing
+  **Reset camera** settings action does, so the two routes cannot drift apart. It writes the config
+  (persisting into the layout) *and* applies the state to the camera handler, so the view moves now
+  instead of waiting for the config to round-trip through React.
+- `Renderer.canResetView()` in 3D reports whether the camera has been moved off the default, so the
+  button stays hidden until it would actually do something. Visibility is driven by `cameraMove`
+  through `#updateCanResetView`, which emits `resetViewChanged` **only when the answer flips** —
+  `cameraMove` fires on every frame of a drag, so emitting unconditionally would re-render the
+  overlay throughout the gesture.
+- `isDefaultCameraView` compares with an epsilon, and deliberately ignores `fovy`/`near`/`far`.
+  The epsilon is load-bearing, not defensive: the camera handler round-trips through three.js, so
+  after a reset `getCameraState().distance` comes back as `19.999999999999993`. Strict equality
+  would leave the button visible forever after the first reset.
+- **The overlay must re-read `canResetView()` when the renderer arrives, not just on the event.**
+  `Renderer` is constructed inside a `useEffect`, so `RendererOverlay` renders once with
+  `renderer === undefined` and its `useState(renderer?.canResetView() ?? false)` initializer
+  resolves to `false` permanently. Since `resetViewChanged` is emitted only when the answer
+  *changes*, and a layout that restores a moved camera starts out already resettable, the button
+  would never appear on exactly the layouts that need it. This shipped once — the fix is the
+  `useEffect` keyed on `renderer`, and `RendererOverlay.test.tsx` covers it by rendering with the
+  renderer absent and then supplying it.
+- `makeDefaultCameraState()` returns a deep copy. `DEFAULT_CAMERA_STATE` holds arrays and
+  `updateConfig` runs through immer, which freezes what it produces — handing out the shared object
+  would freeze the module-level default and break every later reset.
+
 ## MCAP latched / publish-once retention
 
 Transient-local / published-once topics (notably `/tf_static`) were dropped after seeks. Fixes,

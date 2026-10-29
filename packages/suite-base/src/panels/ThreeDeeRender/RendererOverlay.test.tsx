@@ -68,10 +68,13 @@ const mockRenderer = {
   fixedFrameId: undefined,
 };
 
+/** Which renderer `useRenderer()` currently returns; undefined reproduces the pre-construction render. */
+let mockCurrentRenderer: any = mockRenderer;
+
 jest.mock("./RendererContext", () => {
   return {
     __esModule: true,
-    useRenderer: () => mockRenderer,
+    useRenderer: () => mockCurrentRenderer,
     useRendererEvent: (eventName: string, cb: (...args: any[]) => void) => {
       mockRendererEventCallbacks.set(eventName, cb);
     },
@@ -82,6 +85,7 @@ describe("<RendererOverlay /> hover wiring", () => {
   beforeEach(() => {
     mockRendererEventCallbacks.clear();
     mockLastHoverTooltipProps = undefined;
+    mockCurrentRenderer = mockRenderer;
     jest.clearAllMocks();
   });
 
@@ -317,5 +321,106 @@ describe("<RendererOverlay /> hover wiring", () => {
       expect(mockLastHoverTooltipProps).toBeDefined();
       expect(mockLastHoverTooltipProps.entities).toEqual([]);
     });
+  });
+});
+
+describe("<RendererOverlay /> reset view button", () => {
+  beforeEach(() => {
+    mockRendererEventCallbacks.clear();
+    mockCurrentRenderer = mockRenderer;
+    jest.clearAllMocks();
+  });
+
+  function renderOverlay() {
+    return render(
+      <ThemeProvider isDark={false}>
+        <RendererOverlay
+          addPanel={jest.fn() as any}
+          canPublish={false}
+          canvas={document.createElement("canvas")}
+          enableStats={false}
+          interfaceMode="3d"
+          measureActive={false}
+          onChangePublishClickType={jest.fn()}
+          onClickMeasure={jest.fn()}
+          onClickPublish={jest.fn()}
+          onShowTopicSettings={jest.fn()}
+          onTogglePerspective={jest.fn()}
+          perspective={false}
+          publishActive={false}
+          publishClickType="point"
+          timezone={undefined}
+        />
+      </ThemeProvider>,
+    );
+  }
+
+  it("hides the button while there is nothing to reset", () => {
+    mockCurrentRenderer = { ...mockRenderer, canResetView: jest.fn(() => false) };
+    const { queryByTestId } = renderOverlay();
+    expect(queryByTestId("reset-view")).toBeNull();
+  });
+
+  it("shows the button when the renderer only becomes available after the first render", () => {
+    // The Renderer is constructed in an effect, so the overlay's first render sees `undefined`.
+    // A layout that restores a moved camera is already resettable, and `resetViewChanged` only
+    // fires on a *change* — so without re-reading once the renderer arrives, the button would
+    // never appear on exactly the layouts that need it.
+    mockCurrentRenderer = undefined;
+    const { queryByTestId, rerender } = renderOverlay();
+    expect(queryByTestId("reset-view")).toBeNull();
+
+    mockCurrentRenderer = { ...mockRenderer, canResetView: jest.fn(() => true) };
+    act(() => {
+      rerender(
+        <ThemeProvider isDark={false}>
+          <RendererOverlay
+            addPanel={jest.fn() as any}
+            canPublish={false}
+            canvas={document.createElement("canvas")}
+            enableStats={false}
+            interfaceMode="3d"
+            measureActive={false}
+            onChangePublishClickType={jest.fn()}
+            onClickMeasure={jest.fn()}
+            onClickPublish={jest.fn()}
+            onShowTopicSettings={jest.fn()}
+            onTogglePerspective={jest.fn()}
+            perspective={false}
+            publishActive={false}
+            publishClickType="point"
+            timezone={undefined}
+          />
+        </ThemeProvider>,
+      );
+    });
+
+    expect(queryByTestId("reset-view")).not.toBeNull();
+  });
+
+  it("re-reads the renderer when resetViewChanged fires, so the button can hide again", () => {
+    const canResetView = jest.fn(() => true);
+    mockCurrentRenderer = { ...mockRenderer, canResetView };
+    const { queryByTestId } = renderOverlay();
+    expect(queryByTestId("reset-view")).not.toBeNull();
+
+    canResetView.mockReturnValue(false);
+    act(() => {
+      mockRendererEventCallbacks.get("resetViewChanged")?.();
+    });
+
+    expect(queryByTestId("reset-view")).toBeNull();
+  });
+
+  it("resets the view when clicked", () => {
+    const resetView = jest.fn();
+    mockCurrentRenderer = { ...mockRenderer, canResetView: jest.fn(() => true), resetView };
+    const { getByTestId } = renderOverlay();
+
+    act(() => {
+      getByTestId("reset-view").click();
+    });
+
+    expect(resetView).toHaveBeenCalled();
   });
 });

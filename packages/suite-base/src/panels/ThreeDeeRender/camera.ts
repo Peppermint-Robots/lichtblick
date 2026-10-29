@@ -47,6 +47,54 @@ export const DEFAULT_CAMERA_STATE: CameraState = {
   far: 5000,
 };
 
+/**
+ * A fresh, independently mutable copy of the default camera state.
+ *
+ * `DEFAULT_CAMERA_STATE` holds arrays, so handing it out directly would let a caller (or immer,
+ * which freezes what it produces) reach the shared default and affect every later reset.
+ */
+export function makeDefaultCameraState(): CameraState {
+  return {
+    ...DEFAULT_CAMERA_STATE,
+    target: [...DEFAULT_CAMERA_STATE.target],
+    targetOffset: [...DEFAULT_CAMERA_STATE.targetOffset],
+    targetOrientation: [...DEFAULT_CAMERA_STATE.targetOrientation],
+  };
+}
+
+/** Floating-point slop, so a camera nudged by rounding still counts as being at the default. */
+const CAMERA_EPSILON = 1e-6;
+
+function numbersEqual(a: number, b: number): boolean {
+  return Math.abs(a - b) < CAMERA_EPSILON;
+}
+
+function vectorsEqual(a: readonly number[], b: readonly number[]): boolean {
+  return a.length === b.length && a.every((value, index) => numbersEqual(value, b[index] ?? NaN));
+}
+
+/**
+ * Whether the camera is still at its default vantage point.
+ *
+ * Only the fields that decide *where the camera is looking* are compared. `fovy`, `near` and `far`
+ * are lens settings a user may deliberately tune, and a changed clipping plane should not make the
+ * panel claim the view has been moved.
+ */
+export function isDefaultCameraView(state: CameraState | undefined): boolean {
+  if (state == undefined) {
+    return true;
+  }
+  return (
+    state.perspective === DEFAULT_CAMERA_STATE.perspective &&
+    numbersEqual(state.distance, DEFAULT_CAMERA_STATE.distance) &&
+    numbersEqual(state.phi, DEFAULT_CAMERA_STATE.phi) &&
+    numbersEqual(state.thetaOffset, DEFAULT_CAMERA_STATE.thetaOffset) &&
+    vectorsEqual(state.target, DEFAULT_CAMERA_STATE.target) &&
+    vectorsEqual(state.targetOffset, DEFAULT_CAMERA_STATE.targetOffset) &&
+    vectorsEqual(state.targetOrientation, DEFAULT_CAMERA_STATE.targetOrientation)
+  );
+}
+
 export type OrbitControlsConfig = {
   screenSpacePanning: boolean;
   mouseButtons: {

@@ -155,7 +155,7 @@ export type RendererConfig = {
       lineWidth?: number;
       /** Color of the connecting line between child and parent frames */
       lineColor?: string;
-      /** Enable transform preloading */
+      /** Enable transform preloading (default: true) */
       enablePreloading?: boolean;
       /** Maximum number of transform messages to keep when preloading (default: 10000) */
       maxPreloadMessages?: number;

@@ -51,6 +51,7 @@ export function StudioApp(): React.JSX.Element {
   const {
     dataSources,
     extensionLoaders,
+    layoutLoaders,
     nativeAppMenu,
     nativeWindow,
     deepLinks,
@@ -91,7 +92,7 @@ export function StudioApp(): React.JSX.Element {
 
   // Alerts provider also must come before other, dependent contexts.
   providers.unshift(<AlertsContextProvider />);
-  providers.unshift(<CurrentLayoutProvider />);
+  providers.unshift(<CurrentLayoutProvider loaders={layoutLoaders} />);
   providers.unshift(<UserProfileLocalStorageProvider />);
   providers.unshift(<LayoutManagerProvider />);
 

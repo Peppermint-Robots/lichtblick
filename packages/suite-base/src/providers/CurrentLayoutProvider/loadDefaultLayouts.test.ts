@@ -120,6 +120,65 @@ describe("loadDefaultLayouts", () => {
     expect(mockLayoutManager.saveNewLayout).toHaveBeenCalledTimes(4);
   });
 
+  it("should skip a versioned layout whose exact version is already stored", async () => {
+    const storedLayout = {
+      id: "stored-1",
+      from: "web:Robot Diagnostics@1",
+      name: "Robot Diagnostics",
+      data: {} as LayoutData,
+    };
+    mockLayoutLoader.fetchLayouts.mockResolvedValueOnce([
+      { from: "web:Robot Diagnostics@1", name: "Robot Diagnostics", data: {} as LayoutData },
+    ]);
+    mockLayoutManager.getLayouts.mockResolvedValueOnce([storedLayout]);
+
+    await loadDefaultLayouts(mockLayoutManager, [mockLayoutLoader]);
+
+    expect(mockLayoutManager.deleteLayout).not.toHaveBeenCalled();
+    expect(mockLayoutManager.saveNewLayout).not.toHaveBeenCalled();
+  });
+
+  it("should replace a versioned layout when a new version ships", async () => {
+    const storedLayout = {
+      id: "stored-1",
+      from: "web:Robot Diagnostics@1",
+      name: "Robot Diagnostics",
+      data: {} as LayoutData,
+    };
+    const updatedLayout = {
+      from: "web:Robot Diagnostics@2",
+      name: "Robot Diagnostics",
+      data: {} as LayoutData,
+    };
+    mockLayoutLoader.fetchLayouts.mockResolvedValueOnce([updatedLayout]);
+    mockLayoutManager.getLayouts.mockResolvedValueOnce([storedLayout]);
+
+    await loadDefaultLayouts(mockLayoutManager, [mockLayoutLoader]);
+
+    expect(mockLayoutManager.deleteLayout).toHaveBeenCalledWith({ id: "stored-1" });
+    expect(mockLayoutManager.saveNewLayout).toHaveBeenCalledWith(
+      expect.objectContaining({ from: "web:Robot Diagnostics@2" }),
+    );
+  });
+
+  it("should not delete unversioned layouts (legacy loader behavior)", async () => {
+    const storedLayout = {
+      id: "stored-1",
+      from: "layout1.json",
+      name: "layout1",
+      data: {} as LayoutData,
+    };
+    mockLayoutLoader.fetchLayouts.mockResolvedValueOnce([
+      { from: "layout2.json", name: "layout2", data: {} as LayoutData },
+    ]);
+    mockLayoutManager.getLayouts.mockResolvedValueOnce([storedLayout]);
+
+    await loadDefaultLayouts(mockLayoutManager, [mockLayoutLoader]);
+
+    expect(mockLayoutManager.deleteLayout).not.toHaveBeenCalled();
+    expect(mockLayoutManager.saveNewLayout).toHaveBeenCalledTimes(1);
+  });
+
   it("should log a general error if an exception occurs in the try block", async () => {
     const errorMessage = "General loading error";
     const expectedError = `Loading default layouts failed: ${errorMessage}`;

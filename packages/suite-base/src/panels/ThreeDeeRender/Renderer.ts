@@ -488,6 +488,13 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
     this.#picker.dispose();
     this.input.dispose();
     this.gl.dispose();
+    // `dispose()` frees GPU resources but leaves the underlying WebGL context alive until it is
+    // garbage-collected. On a panel remount (e.g. a layout/robot switch, or "reset to defaults")
+    // a new context is created immediately, so without an explicit teardown the browser's small
+    // active-context budget can be exhausted, causing `new WebGLRenderer` to throw. Force the
+    // context loss so it is released deterministically. Safe here: no code uses `gl` after dispose
+    // and the panel registers no context-loss handler.
+    this.gl.forceContextLoss();
   }
 
   public cameraSyncError(): undefined | string {
@@ -753,7 +760,7 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
 
   #addTransformSubscriptions(): void {
     const config = this.config;
-    const preloadTransforms = config.scene.transforms?.enablePreloading ?? false;
+    const preloadTransforms = config.scene.transforms?.enablePreloading ?? true;
     // Internal handlers for TF messages to update the transform tree
     this.#addSchemaSubscriptions(FRAME_TRANSFORM_DATATYPES, {
       handler: this.#handleFrameTransform,

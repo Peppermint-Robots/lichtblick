@@ -373,4 +373,12 @@ export default [
       "@lichtblick/license-header": "off",
     },
   },
+
+  // Private layouts submodule: files carry their own license headers, which `--fix` must not rewrite
+  {
+    files: ["packages/suite-base/src/layouts/private/**"],
+    rules: {
+      "@lichtblick/license-header": "off",
+    },
+  },
 ];

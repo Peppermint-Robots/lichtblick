@@ -26,6 +26,8 @@ import {
 } from "@lichtblick/suite-base";
 import { APP_CONFIG } from "@lichtblick/suite-base/constants/config";
 import { AppParametersInput } from "@lichtblick/suite-base/context/AppParametersContext";
+import { bundledLayouts } from "@lichtblick/suite-base/layouts";
+import { BundledLayoutLoader } from "@lichtblick/suite-base/services/BundledLayoutLoader";
 
 import LocalStorageAppConfiguration from "./services/LocalStorageAppConfiguration";
 
@@ -68,6 +70,11 @@ export function WebRoot(props: {
     return params;
   });
 
+  const layoutsUrl = url.searchParams.get("layoutsUrl");
+  const [layoutLoaders] = useState(() => [
+    new BundledLayoutLoader(bundledLayouts, layoutsUrl ?? undefined),
+  ]);
+
   const dataSources = useMemo(() => {
     const sources = [
       new Ros1LocalBagDataSourceFactory(),
@@ -91,6 +98,7 @@ export function WebRoot(props: {
       appConfiguration={appConfiguration}
       appParameters={appParameters}
       extensionLoaders={extensionLoaders}
+      layoutLoaders={layoutLoaders}
       enableGlobalCss
       extraProviders={props.extraProviders}
       AppBarComponent={props.AppBarComponent}

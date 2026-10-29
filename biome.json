@@ -15,7 +15,8 @@
       "!**/coverage/**",
       "!**/storybook-static/**",
       "!**/node_modules/**",
-      "!packages/**/wasm/*.js"
+      "!packages/**/wasm/*.js",
+      "!packages/suite-base/src/layouts/private/**"
     ]
   },
   "formatter": {

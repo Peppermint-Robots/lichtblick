@@ -9,7 +9,11 @@
     "useUnknownInCatchVariables": false,
     "types": ["node", "jest"],
     "paths": {
-      "@lichtblick/suite-base/*": ["../suite-base/src/*"]
+      "@lichtblick/suite-base/*": ["../suite-base/src/*"],
+      "@lichtblick/private-layouts": [
+        "../suite-base/src/layouts/private/index.ts",
+        "../suite-base/src/layouts/noPrivateLayouts.ts"
+      ]
     }
   }
 }

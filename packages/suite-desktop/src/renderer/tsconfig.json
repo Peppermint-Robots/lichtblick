@@ -10,7 +10,11 @@
     "types": ["node", "jest"],
     "lib": ["dom", "dom.iterable", "es2022", "webworker"],
     "paths": {
-      "@lichtblick/suite-base/*": ["../../../suite-base/src/*"]
+      "@lichtblick/suite-base/*": ["../../../suite-base/src/*"],
+      "@lichtblick/private-layouts": [
+        "../../../suite-base/src/layouts/private/index.ts",
+        "../../../suite-base/src/layouts/noPrivateLayouts.ts"
+      ]
     }
   }
 }

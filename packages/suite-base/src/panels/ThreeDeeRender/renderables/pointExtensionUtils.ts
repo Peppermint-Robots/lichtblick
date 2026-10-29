@@ -107,7 +107,7 @@ export function pointSettingsNode(
         label: t("threeDee:pointSize"),
         input: "number",
         step: 1,
-        placeholder: "2",
+        placeholder: String(defaultSettings.pointSize),
         precision: 2,
         value: pointSize,
         min: 0,

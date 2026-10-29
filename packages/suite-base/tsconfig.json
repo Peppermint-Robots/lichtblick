@@ -9,7 +9,11 @@
     "declarationMap": false,
     "sourceMap": false,
     "paths": {
-      "@lichtblick/suite-base/*": ["./src/*"]
+      "@lichtblick/suite-base/*": ["./src/*"],
+      "@lichtblick/private-layouts": [
+        "./src/layouts/private/index.ts",
+        "./src/layouts/noPrivateLayouts.ts"
+      ]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

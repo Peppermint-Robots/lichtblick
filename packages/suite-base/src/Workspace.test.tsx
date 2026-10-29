@@ -119,6 +119,10 @@ jest.mock("@lichtblick/suite-base/components/RemountOnValueChange", () => ({
   __esModule: true,
   default: ({ children }: React.PropsWithChildren) => <>{children}</>,
 }));
+jest.mock("@lichtblick/suite-base/components/RobotNamespaceLayoutAdapter", () => ({
+  __esModule: true,
+  default: () => undefined,
+}));
 jest.mock("@lichtblick/suite-base/components/SidebarContent", () => ({
   SidebarContent: ({ children }: React.PropsWithChildren) => <>{children}</>,
 }));

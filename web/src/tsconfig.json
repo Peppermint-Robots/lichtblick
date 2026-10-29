@@ -8,7 +8,11 @@
     "experimentalDecorators": true,
     "useUnknownInCatchVariables": false,
     "paths": {
-      "@lichtblick/suite-base/*": ["../../packages/suite-base/src/*"]
+      "@lichtblick/suite-base/*": ["../../packages/suite-base/src/*"],
+      "@lichtblick/private-layouts": [
+        "../../packages/suite-base/src/layouts/private/index.ts",
+        "../../packages/suite-base/src/layouts/noPrivateLayouts.ts"
+      ]
     }
   }
 }

@@ -192,7 +192,7 @@ export class FrameAxes extends SceneExtension<FrameAxisRenderable> {
           enablePreloading: {
             label: t("threeDee:enablePreloading"),
             input: "boolean",
-            value: config.scene.transforms?.enablePreloading ?? false,
+            value: config.scene.transforms?.enablePreloading ?? true,
             tooltip: t("threeDee:enablePreloadingTooltip"),
           },
           maxPreloadMessages: {
@@ -203,11 +203,11 @@ export class FrameAxes extends SceneExtension<FrameAxisRenderable> {
             step: 1000,
             value: config.scene.transforms?.maxPreloadMessages ?? 10000,
             tooltip: t("threeDee:maxPreloadMessagesTooltip"),
-            disabled: !(config.scene.transforms?.enablePreloading ?? false),
+            disabled: !(config.scene.transforms?.enablePreloading ?? true),
           },
         },
         actions:
-          config.scene.transforms?.enablePreloading === true
+          config.scene.transforms?.enablePreloading !== false
             ? [
                 {
                   id: "clear-preload-buffer",

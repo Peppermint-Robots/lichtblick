@@ -41,6 +41,9 @@ export type {
 export type { LayoutLoader } from "./services/ILayoutLoader";
 export type { LayoutInfo } from "./types/layouts";
 export type { LayoutData } from "./context/CurrentLayoutContext";
+export { bundledLayouts } from "./layouts";
+export type { BundledLayout } from "./layouts";
+export { BundledLayoutLoader } from "./services/BundledLayoutLoader";
 export type { ExtensionInfo } from "./types/Extensions";
 export { AppSetting } from "./AppSetting";
 export { default as FoxgloveWebSocketDataSourceFactory } from "./dataSources/FoxgloveWebSocketDataSourceFactory";

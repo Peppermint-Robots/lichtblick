@@ -30,14 +30,7 @@ import { MessageDefinition, isMsgDefEqual } from "@lichtblick/message-definition
 import CommonRosTypes from "@lichtblick/rosmsg-msgs-common";
 import { MessageWriter as Ros1MessageWriter } from "@lichtblick/rosmsg-serialization";
 import { MessageWriter as Ros2MessageWriter } from "@lichtblick/rosmsg2-serialization";
-import {
-  fromMillis,
-  fromNanoSec,
-  isGreaterThan,
-  isLessThan,
-  subtract,
-  Time,
-} from "@lichtblick/rostime";
+import { fromMillis, fromNanoSec, isGreaterThan, isLessThan, Time } from "@lichtblick/rostime";
 import { ParameterValue } from "@lichtblick/suite";
 import { Asset } from "@lichtblick/suite-base/components/PanelExtensionAdapter";
 import PlayerAlertManager from "@lichtblick/suite-base/players/PlayerAlertManager";
@@ -56,8 +49,6 @@ import {
   Topic,
   TopicStats,
 } from "@lichtblick/suite-base/players/types";
-import { HIGH_FREQUENCY_ALERT } from "@lichtblick/suite-base/players/utils/constants";
-import { isTopicHighFrequency } from "@lichtblick/suite-base/players/utils/isTopicHighFrequency";
 import rosDatatypesToMessageDefinition from "@lichtblick/suite-base/util/rosDatatypesToMessageDefinition";
 
 import { JsonMessageWriter } from "./JsonMessageWriter";
@@ -148,7 +139,6 @@ export default class FoxgloveWebSocketPlayer implements Player {
   #fetchedAssets = new Map<string, Promise<Asset>>();
   #parameterTypeByName = new Map<string, Parameter["type"]>();
   #messageSizeEstimateByTopic: Record<string, number> = {};
-  #ishighFrequencyMessage = false;
 
   public constructor({
     url,
@@ -224,7 +214,6 @@ export default class FoxgloveWebSocketPlayer implements Player {
       this.#advertisedServices = undefined;
       this.#datatypes = new Map();
       this.#parameters = new Map();
-      this.#ishighFrequencyMessage = false;
     });
 
     this.#client.on("error", (err) => {
@@ -576,22 +565,9 @@ export default class FoxgloveWebSocketPlayer implements Player {
         stats.numMessages++;
         this.#topicsStats = topicStats;
 
-        if (!this.#ishighFrequencyMessage) {
-          const duration =
-            this.#startTime && this.#endTime ? subtract(this.#endTime, this.#startTime) : undefined;
-          this.#ishighFrequencyMessage = isTopicHighFrequency({
-            topicStats: this.#topicsStats,
-            topic: { name: topic, schemaName: chanInfo.channel.schemaName },
-            duration,
-          });
-          if (this.#ishighFrequencyMessage) {
-            this.#alerts.addAlert(HIGH_FREQUENCY_ALERT.id, {
-              severity: HIGH_FREQUENCY_ALERT.severity,
-              message: HIGH_FREQUENCY_ALERT.message,
-              error: new Error(HIGH_FREQUENCY_ALERT.errorMessage),
-            });
-          }
-        }
+        // Note: upstream Lichtblick raises a HIGH_FREQUENCY_ALERT here for topics above 60Hz.
+        // The alert is informational only (no data is dropped), and robot data sources routinely
+        // exceed 60Hz (imu, tf, odom), so this fork does not surface it.
       } catch (error) {
         this.#alerts.addAlert(`message:${chanInfo.channel.topic}`, {
           severity: "error",

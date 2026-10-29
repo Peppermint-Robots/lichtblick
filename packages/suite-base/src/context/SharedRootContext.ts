@@ -14,6 +14,7 @@ import { AppParametersInput } from "@lichtblick/suite-base/context/AppParameters
 import { INativeAppMenu } from "@lichtblick/suite-base/context/NativeAppMenuContext";
 import { INativeWindow } from "@lichtblick/suite-base/context/NativeWindowContext";
 import { IDataSourceFactory } from "@lichtblick/suite-base/context/PlayerSelectionContext";
+import { LayoutLoader } from "@lichtblick/suite-base/services/ILayoutLoader";
 import { IExtensionLoader } from "@lichtblick/suite-base/services/extension/IExtensionLoader";
 
 interface ISharedRootContext {
@@ -22,6 +23,7 @@ interface ISharedRootContext {
   appParameters?: AppParametersInput;
   dataSources: IDataSourceFactory[];
   extensionLoaders: readonly IExtensionLoader[];
+  layoutLoaders?: readonly LayoutLoader[];
   nativeAppMenu?: INativeAppMenu;
   nativeWindow?: INativeWindow;
   enableLaunchPreferenceScreen?: boolean;

@@ -50,6 +50,7 @@ import {
 import useUpdateSharedPanelState from "@lichtblick/suite-base/providers/CurrentLayoutProvider/hooks/useUpdateSharedPanelState";
 import { loadDefaultLayouts } from "@lichtblick/suite-base/providers/CurrentLayoutProvider/loadDefaultLayouts";
 import panelsReducer from "@lichtblick/suite-base/providers/CurrentLayoutProvider/reducers";
+import { isBundledLayout } from "@lichtblick/suite-base/services/BundledLayoutLoader";
 import { AppEvent } from "@lichtblick/suite-base/services/IAnalytics";
 import { LayoutLoader } from "@lichtblick/suite-base/services/ILayoutLoader";
 import { LayoutManagerEventTypes } from "@lichtblick/suite-base/services/ILayoutManager";
@@ -346,7 +347,9 @@ export default function CurrentLayoutProvider({
       return;
     }
 
-    if (layouts.length > 0) {
+    // Layouts bundled with the app don't count as the user's own: with only those present, still
+    // seed the fallback "Default" layout so it exists alongside them.
+    if (layouts.some((l) => !isBundledLayout(l))) {
       const orgLayouts = layouts.filter((l) => l.permission.startsWith(ORG_PERMISSION_PREFIX));
       const layoutsToSort = orgLayouts.length > 0 ? orgLayouts : layouts;
       const sortedLayouts = [...layoutsToSort].sort((a, b) => a.name.localeCompare(b.name));

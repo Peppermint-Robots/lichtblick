@@ -58,6 +58,8 @@ async function run(rootPath: string) {
       "@types/jest",
       "foxglove__web",
       "wicg-file-system-access",
+      // Webpack/tsconfig alias for the optional private layouts submodule, not an npm package
+      "@lichtblick/private-layouts",
     ],
   };
   return await depcheck(rootPath, options);

@@ -6,6 +6,12 @@
     "lib": ["ESNext.Disposable"],
     "module": "commonjs",
     "noEmit": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "paths": {
+      "@lichtblick/private-layouts": [
+        "../packages/suite-base/src/layouts/private/index.ts",
+        "../packages/suite-base/src/layouts/noPrivateLayouts.ts"
+      ]
+    }
   }
 }

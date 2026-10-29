@@ -24,6 +24,8 @@ import {
   SampleNuscenesDataSourceFactory,
   UlogLocalDataSourceFactory,
   VelodyneDataSourceFactory,
+  bundledLayouts,
+  BundledLayoutLoader,
 } from "@lichtblick/suite-base";
 
 import { DesktopExtensionLoader } from "./services/DesktopExtensionLoader";
@@ -76,7 +78,12 @@ export default function Root(props: RootProps): React.JSX.Element {
     new DesktopExtensionLoader(desktopBridge),
   ]);
 
-  const [layoutLoaders] = useState(() => [new DesktopLayoutLoader(desktopBridge)]);
+  // Bundled defaults (shared with the web build) plus any layouts the user dropped into
+  // ~/.lichtblick-suite/layouts on disk.
+  const [layoutLoaders] = useState(() => [
+    new BundledLayoutLoader(bundledLayouts),
+    new DesktopLayoutLoader(desktopBridge),
+  ]);
 
   const nativeAppMenu = useMemo(() => new NativeAppMenu(menuBridge), []);
   const nativeWindow = useMemo(() => new NativeWindow(desktopBridge), []);

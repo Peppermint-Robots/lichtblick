@@ -13,6 +13,12 @@ const isFulfilled = <T>(result: PromiseSettledResult<T>): result is PromiseFulfi
 const isRejected = (result: PromiseSettledResult<unknown>): result is PromiseRejectedResult =>
   result.status === "rejected";
 
+// Layouts identified as "<base>@<version>" are managed: when a loader supplies a new version,
+// the stored copy from an older version is deleted and replaced. Layouts without "@" in their
+// `from` (e.g. the desktop filesystem loader) keep the legacy exact-`from` dedupe behavior.
+const versionedFromBase = (from: undefined | string): undefined | string =>
+  from?.includes("@") === true ? from.split("@")[0] : undefined;
+
 export const loadDefaultLayouts = async (
   layoutManager: ILayoutManager,
   loaders: readonly LayoutLoader[],
@@ -35,6 +41,23 @@ export const loadDefaultLayouts = async (
     // Log errors cause failed to fetch some layout from a specific loader
     loaderResults.filter(isRejected).forEach(({ reason }) => {
       log.error(`Failed to fetch layouts from loader: ${reason}`);
+    });
+
+    // Delete stale versions of managed layouts that are about to be re-saved with new content.
+    const newLayoutBases = new Set(
+      newLayouts.map(({ from }) => versionedFromBase(from)).filter((base) => base != undefined),
+    );
+    const staleLayouts = currentLayouts.filter((layout) => {
+      const base = versionedFromBase(layout.from);
+      return base != undefined && newLayoutBases.has(base);
+    });
+    const deleteResults = await Promise.allSettled(
+      staleLayouts.map(async (layout) => {
+        await layoutManager.deleteLayout({ id: layout.id });
+      }),
+    );
+    deleteResults.filter(isRejected).forEach(({ reason }) => {
+      log.error(`Failed to delete outdated default layout: ${reason}`);
     });
 
     const savedPromises = newLayouts.map(

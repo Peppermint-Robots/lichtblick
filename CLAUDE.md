@@ -13,6 +13,64 @@ there — both entry points render the same `Workspace`.
 Build with the `justfile` (`just --list`). Outputs: web → `web/.webpack`, desktop →
 `desktop/.webpack`, packaged installers → `dist/`. See `README.md`.
 
+## This repo is PUBLIC — keep proprietary material out (read before committing)
+
+`Peppermint-Robots/lichtblick` is public and part of the `lichtblick-suite/lichtblick` fork network.
+In October 2026 proprietary material reached it: robot identifiers, internal topic details,
+recordings, and internal extension binaries. These were in code, tests, docs, commit messages and
+PRs. Cleaning up took a rebuilt history (`ppmt/main` replaced the deleted `dev/ppmt`), archived PRs
+and a GitHub Support purge, and the data must still be treated as disclosed. Don't repeat it.
+
+**What goes where**
+
+- **This repo:** generic, upstreamable code only.
+- **The private submodule** (`packages/suite-base/src/layouts/private/`, see below) holds:
+  - layouts;
+  - Peppermint-specific panels (they encode internal topics and message semantics);
+  - robot IDs, recordings and fixtures;
+  - error-code text;
+  - `.foxe` extensions and their sources.
+- **Private `index.ts` exports runtime data only.** Tests import their fixtures by relative path, so a
+  recording can never end up in a bundle.
+- **The rule covers text too:** commit messages, PR titles and descriptions, code comments, test names,
+  and this file. Describe private work generically ("a private panel", "a per-robot topic"), never by
+  its real names or numbers.
+- **Tests and docs** use synthetic robot IDs (`AB0000001`) and generic topics (`/odom`,
+  `/robot_a/...`). Never paste real IDs or topic names out of a bag or the robot software.
+- **Never commit a `.foxe` here.** Extensions ship from the private repo through `privateExtensions`;
+  the only exceptions are upstream's own test fixtures.
+
+**Before every push to this repo**
+
+- **Scan what you're adding against upstream:** the added lines of `git diff <upstream-base>..HEAD`
+  and the messages of `git log --format=%B <upstream-base>..HEAD`. Look for:
+  - robot-ID-like tokens (`\b[A-Z]{2,}[0-9][A-Z0-9]{4,}\b`);
+  - any topic or internal component name documented in the private repo's `CLAUDE.md`;
+  - new `.foxe` files, recordings or fixtures.
+
+  Fix everything before pushing.
+- **Never "fix" a leak with a force-push.** Force-pushed commits stay public as orphans: the activity
+  view lists them, and every repository in the fork network, including upstream, still serves them
+  by SHA.
+- **Don't open PRs here that carry proprietary changes.** `refs/pull/<n>/head` is read-only and
+  permanent, and only GitHub Support can delete a PR. Review private work in the private repo.
+- **CI never checks out the submodule**, so it can't catch private content. Run the private repo's
+  local checks yourself (see its `CLAUDE.md`).
+
+**If something leaks anyway**
+
+1. Stop pushing to the affected branch. Back it up with `git bundle` to a private location, never to
+   a remote.
+2. Rebuild the work as fresh commits on a new branch and delete the affected one. Then confirm no
+   branch or tag still contains the bad commits (fetch all refs, then `git for-each-ref --contains`).
+3. Archive the affected PRs: this hides them right away, though their refs remain. Delete any
+   Actions runs whose logs show the material.
+4. File a GitHub Support request listing **every** affected SHA, including force-push orphans and
+   PR test-merge commits. Ask them to delete the PRs, purge cached views and garbage-collect across
+   the whole fork network.
+5. Verify afterwards: `gh api repos/<owner>/<repo>/commits/<sha>` should return 422 on this repo, on
+   upstream and on another fork.
+
 ## Default layouts (bundled into both builds)
 
 Peppermint ships ready-made debugging layouts so anyone can open a bag and get a useful view.
